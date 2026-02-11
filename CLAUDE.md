@@ -13,6 +13,24 @@ tokens, access to preferred tools, and higher rate limits.
 - Cloudflare Workers + Hyperdrive
 - PostgreSQL (Neon) via `pg` client
 - Vite
+- Mantine UI v8 - Component library and design system
+
+## UI Components
+
+The application uses **Mantine UI v8** for all user interface components:
+
+- **Core Components:** `@mantine/core` - Buttons, Inputs, Cards, Tables, Modals, etc.
+- **Charts:** `@mantine/charts` - Data visualization (wraps Recharts)
+- **Hooks:** `@mantine/hooks` - useDisclosure, useForm, etc.
+- **Icons:** `@tabler/icons-react` - Icon set
+
+All components are wrapped in `MantineProvider` (see `app/root.tsx`) and use Mantine's theming system. The PostCSS configuration (`postcss.config.cjs`) includes `postcss-preset-mantine` for proper styling.
+
+**Key patterns:**
+- Use Mantine components instead of raw HTML elements
+- Leverage built-in responsive props: `cols={{ base: 1, sm: 2, md: 4 }}`
+- Use Mantine's color system: `c="dimmed"`, `color="blue.6"`
+- Forms use `@mantine/form` hook for validation and state management
 
 ## Database
 
