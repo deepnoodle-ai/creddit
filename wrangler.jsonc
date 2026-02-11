@@ -9,7 +9,8 @@
   "hyperdrive": [
     {
       "binding": "HYPERDRIVE",
-      "id": "140ad4f5bb134b0292b3567b49da6581"
+      "id": "140ad4f5bb134b0292b3567b49da6581",
+      "localConnectionString": "postgresql://creddit:creddit_dev@localhost:5432/creddit"
     }
   ]
 }

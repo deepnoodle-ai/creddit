@@ -1,56 +1,46 @@
-.PHONY: help dev setup docker-up docker-down db-migrate db-seed db-setup db-reset
+DATABASE_URL ?= postgresql://creddit:creddit_dev@localhost:5432/creddit
 
-help: ## Show this help message
-	@echo 'Usage: make [target]'
-	@echo ''
-	@echo 'Available targets:'
+.PHONY: help setup dev deploy docker-up docker-down db-setup db-migrate db-seed db-reset db-shell clean
+
+help: ## Show available commands
 	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*?## "}; {printf "  %-15s %s\n", $$1, $$2}'
 
-setup: ## Complete local setup (Docker + database + dependencies)
-	@echo "🚀 Setting up creddit for local development..."
-	@if [ ! -f .dev.vars ]; then cp .dev.vars.example .dev.vars && echo "✅ Created .dev.vars file"; fi
-	@pnpm install
-	@make docker-up
-	@sleep 3
-	@echo "⚠️  Setting up database (requires DATABASE_URL in shell env)..."
-	@export DATABASE_URL="postgresql://creddit:creddit_dev@localhost:5432/creddit" && pnpm db:setup
-	@echo ""
-	@echo "✅ Setup complete! Run 'make dev' to start the server"
-	@echo "   The server will use DATABASE_URL from .dev.vars"
+setup: ## First-time local setup
+	@if [ ! -f .dev.vars ]; then cp .dev.vars.example .dev.vars; fi
+	pnpm install
+	$(MAKE) docker-up
+	@echo "Waiting for PostgreSQL..."
+	@docker-compose exec -T postgres pg_isready -U creddit -d creddit --timeout=30 > /dev/null 2>&1 || sleep 5
+	$(MAKE) db-setup
+	@echo "Ready. Run 'make dev' to start."
 
-dev: ## Start development server (wrangler dev)
-	@pnpm dev
-
-docker-up: ## Start PostgreSQL database
-	@echo "🐳 Starting PostgreSQL..."
-	@docker-compose up -d
-	@echo "✅ PostgreSQL started at localhost:5432"
-
-docker-down: ## Stop PostgreSQL database
-	@docker-compose down
-
-db-migrate: ## Run database migrations
-	@pnpm db:migrate
-
-db-seed: ## Seed database with initial data
-	@pnpm db:seed
-
-db-setup: ## Run migrations and seed data
-	@pnpm db:setup
-
-db-reset: ## Reset database (DESTRUCTIVE - deletes all data)
-	@echo "⚠️  This will delete ALL data!"
-	@read -p "Are you sure? (y/N) " -n 1 -r; \
-	echo; \
-	if [[ $$REPLY =~ ^[Yy]$$ ]]; then \
-		pnpm db:reset && pnpm db:setup; \
-	fi
-
-db-shell: ## Open PostgreSQL shell
-	@pnpm db:psql
-
-clean: ## Clean build artifacts
-	@rm -rf build .react-router
+dev: ## Start development server
+	pnpm dev
 
 deploy: ## Deploy to Cloudflare Workers
-	@pnpm deploy
+	pnpm deploy
+
+docker-up: ## Start local PostgreSQL
+	docker-compose up -d
+
+docker-down: ## Stop local PostgreSQL
+	docker-compose down
+
+db-setup: ## Run migrations + seed data
+	DATABASE_URL=$(DATABASE_URL) pnpm db:setup
+
+db-migrate: ## Run database migrations
+	DATABASE_URL=$(DATABASE_URL) pnpm db:migrate
+
+db-seed: ## Seed database
+	DATABASE_URL=$(DATABASE_URL) pnpm db:seed
+
+db-reset: ## Reset database (destructive)
+	DATABASE_URL=$(DATABASE_URL) pnpm db:reset
+	$(MAKE) db-setup
+
+db-shell: ## Open PostgreSQL shell
+	psql $(DATABASE_URL)
+
+clean: ## Clean build artifacts
+	rm -rf build .react-router
