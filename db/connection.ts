@@ -1,8 +1,8 @@
 /**
  * Database Connection
  *
- * PostgreSQL connection using pg Client via Cloudflare Hyperdrive.
- * Each request creates a new client; Hyperdrive manages the connection pool.
+ * Per-request PostgreSQL client. In production, Hyperdrive manages connection
+ * pooling. In local dev, connects directly via DATABASE_URL.
  */
 
 import { Client } from 'pg';
@@ -11,10 +11,19 @@ let currentClient: Client | null = null;
 
 /**
  * Initialize a new database client for the current request.
- * Must be called at the start of each request with the Hyperdrive connection string.
+ * Falls back to process.env.DATABASE_URL if no connection string is provided.
  */
-export async function initClient(connectionString: string): Promise<void> {
-  currentClient = new Client({ connectionString });
+export async function initClient(connectionString?: string): Promise<void> {
+  const connStr = connectionString || process.env.DATABASE_URL;
+
+  if (!connStr) {
+    throw new Error(
+      'No database connection string available. ' +
+      'Either provide connectionString parameter or set DATABASE_URL environment variable.'
+    );
+  }
+
+  currentClient = new Client({ connectionString: connStr });
   await currentClient.connect();
 }
 

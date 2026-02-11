@@ -112,15 +112,73 @@ These files are no longer used and can be removed:
 - `db/admin-queries-postgres.ts` - Replaced by `db/adapters/postgres/admin-repository.ts`
 - `db/index-postgres.ts` - No longer needed
 
-**See ARCHITECTURE.md for detailed explanation of the clean architecture implementation.**
+**See `docs/technical-design/architecture.md` for detailed explanation of the clean architecture implementation.**
 
 ## Development
 
+### Quick Start (Local)
+
 ```bash
-pnpm dev          # Start development server
+pnpm docker:up              # Start local PostgreSQL
+cp .dev.vars.example .dev.vars   # Create wrangler dev vars
+export DATABASE_URL="postgresql://creddit:creddit_dev@localhost:5432/creddit"
+pnpm db:setup               # Initialize database
+pnpm dev                    # Start dev server
+```
+
+Visit http://localhost:5173
+
+### Development Mode
+
+Uses `wrangler dev` with local PostgreSQL connection:
+- No Cloudflare Hyperdrive needed for local development
+- Direct PostgreSQL connection via `.dev.vars` file
+- Full Cloudflare Workers API compatibility
+- See `docs/development/local-development.md` for detailed guide
+
+**Environment Setup:**
+- `.dev.vars` - Used by wrangler dev (set `DATABASE_URL`)
+- Shell `DATABASE_URL` - Used by database scripts (`db:migrate`, `db:seed`, etc.)
+
+```bash
+pnpm dev          # Start development server (wrangler dev)
 pnpm build        # Build for production
 pnpm typecheck    # Run TypeScript checks
+pnpm deploy       # Deploy to Cloudflare Workers
 ```
+
+### Database Management
+
+**Important:** Database scripts use shell environment `DATABASE_URL`, not `.dev.vars`
+
+```bash
+# Set DATABASE_URL for database commands
+export DATABASE_URL="postgresql://creddit:creddit_dev@localhost:5432/creddit"
+
+pnpm docker:up    # Start local PostgreSQL (Docker)
+pnpm docker:down  # Stop PostgreSQL
+pnpm db:migrate   # Run migrations
+pnpm db:seed      # Seed data
+pnpm db:setup     # Migrate + seed (full setup)
+pnpm db:reset     # Reset database (destructive)
+pnpm db:psql      # PostgreSQL shell
+```
+
+## Documentation
+
+All project documentation lives in `docs/` subdirectories with `kebab-case.md` naming:
+
+```
+docs/
+├── api/                  # API endpoint documentation
+├── database/             # Schema, migrations, test cases
+├── development/          # Local dev setup, workflows
+├── prds/                 # Product requirements documents
+└── technical-design/     # Architecture and design docs
+```
+
+Do not place `.md` files directly in `docs/` — always use a subdirectory.
+Root-level `README.md` and `CLAUDE.md` are the only exceptions.
 
 ## Project Structure
 

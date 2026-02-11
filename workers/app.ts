@@ -9,7 +9,12 @@ const requestHandler = createRequestHandler(
 
 export default {
   async fetch(request: Request, env: Env, ctx: ExecutionContext) {
-    await initClient(env.HYPERDRIVE.connectionString);
+    // Hyperdrive in production, DATABASE_URL for local dev
+    const connectionString =
+      env.HYPERDRIVE?.connectionString || env.DATABASE_URL;
+
+    await initClient(connectionString);
+
     try {
       const context = new RouterContextProvider();
       context.cloudflare = { env, ctx };

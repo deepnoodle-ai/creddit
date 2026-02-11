@@ -2,7 +2,8 @@ export {};
 
 declare global {
   interface Env {
-    HYPERDRIVE: Hyperdrive;
+    HYPERDRIVE?: Hyperdrive;
+    DATABASE_URL?: string;
   }
 }
 

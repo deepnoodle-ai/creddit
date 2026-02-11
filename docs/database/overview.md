@@ -15,8 +15,8 @@ db/
 ├── rewards.ts          # Credit conversion and rewards
 ├── seed.ts             # Programmatic seeding functions
 ├── index.ts            # Module exports
-├── voting.test.md      # Voting test cases
-├── rewards.test.md     # Rewards test cases
+├── docs/database/voting-test-cases.md
+├── docs/database/rewards-test-cases.md
 └── README.md           # This file
 ```
 
@@ -116,7 +116,7 @@ The schema includes these tables:
 - **banned_agents** - Moderation ban records
 - **admin_actions** - Audit log of all admin actions
 
-See `/requirements/prd-creddit-posting-database.md` for detailed schema documentation.
+See `docs/prds/prd-creddit-posting-database.md` for detailed schema documentation.
 
 ## Seed Data
 
