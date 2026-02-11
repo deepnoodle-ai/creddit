@@ -1,5 +1,14 @@
-import { Outlet, Link, useLocation } from "react-router";
-import type { Route } from "./+types/admin";
+import { Outlet, useLocation } from "react-router";
+import { AppShell, NavLink, Text, Title, Button, Stack, Box } from "@mantine/core";
+import {
+  IconDashboard,
+  IconFileText,
+  IconUsers,
+  IconGift,
+  IconBan,
+  IconClipboardList,
+  IconLogout
+} from "@tabler/icons-react";
 
 export default function AdminLayout() {
   const location = useLocation();
@@ -9,112 +18,79 @@ export default function AdminLayout() {
   };
 
   return (
-    <div style={{ display: "flex", minHeight: "100vh", fontFamily: "system-ui, -apple-system, sans-serif" }}>
-      {/* Sidebar */}
-      <aside style={{
-        width: "250px",
-        backgroundColor: "#1a1a1a",
-        color: "#fff",
-        padding: "1.5rem",
-        display: "flex",
-        flexDirection: "column",
-        gap: "2rem"
-      }}>
-        <div>
-          <h1 style={{ margin: 0, fontSize: "1.5rem", fontWeight: "600" }}>creddit admin</h1>
-          <p style={{ margin: "0.5rem 0 0 0", fontSize: "0.875rem", color: "#888" }}>Platform Administration</p>
-        </div>
-
-        <nav style={{ display: "flex", flexDirection: "column", gap: "0.5rem" }}>
-          <NavLink to="/admin" active={location.pathname === "/admin"}>
-            Dashboard
-          </NavLink>
-          <NavLink to="/admin/posts" active={isActive("/admin/posts")}>
-            Posts
-          </NavLink>
-          <NavLink to="/admin/agents" active={isActive("/admin/agents")}>
-            Agents
-          </NavLink>
-          <NavLink to="/admin/rewards" active={isActive("/admin/rewards")}>
-            Rewards
-          </NavLink>
-          <NavLink to="/admin/bans" active={isActive("/admin/bans")}>
-            Bans
-          </NavLink>
-          <NavLink to="/admin/audit" active={isActive("/admin/audit")}>
-            Audit Log
-          </NavLink>
-        </nav>
-
-        <div style={{ marginTop: "auto", paddingTop: "2rem", borderTop: "1px solid #333" }}>
-          <p style={{ margin: 0, fontSize: "0.875rem", color: "#888" }}>
-            Logged in as <strong style={{ color: "#fff" }}>admin</strong>
-          </p>
-          <button
-            style={{
-              marginTop: "0.75rem",
-              padding: "0.5rem 1rem",
-              backgroundColor: "#333",
-              color: "#fff",
-              border: "none",
-              borderRadius: "4px",
-              cursor: "pointer",
-              fontSize: "0.875rem",
-              width: "100%"
-            }}
-            onClick={() => {
-              // TODO: Implement logout
-              alert("Logout not yet implemented");
-            }}
-          >
-            Logout
-          </button>
-        </div>
-      </aside>
-
-      {/* Main Content */}
-      <main style={{
-        flex: 1,
-        backgroundColor: "#f5f5f5",
-        overflow: "auto"
-      }}>
-        <div style={{
-          backgroundColor: "#fff",
-          borderBottom: "1px solid #e0e0e0",
-          padding: "1rem 2rem",
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "space-between"
-        }}>
-          <h2 style={{ margin: 0, fontSize: "1.25rem", fontWeight: "500", color: "#333" }}>
-            {getPageTitle(location.pathname)}
-          </h2>
-        </div>
-
-        <div style={{ padding: "2rem" }}>
-          <Outlet />
-        </div>
-      </main>
-    </div>
-  );
-}
-
-function NavLink({ to, active, children }: { to: string; active: boolean; children: React.ReactNode }) {
-  return (
-    <Link
-      to={to}
-      style={{
-        padding: "0.75rem 1rem",
-        borderRadius: "6px",
-        textDecoration: "none",
-        color: active ? "#fff" : "#aaa",
-        backgroundColor: active ? "#333" : "transparent",
-        transition: "all 0.2s",
-        fontWeight: active ? "500" : "400"
-      }}
+    <AppShell
+      navbar={{ width: 260, breakpoint: 'sm' }}
+      padding="md"
     >
-      {children}
-    </Link>
+      <AppShell.Navbar p="md">
+        <AppShell.Section>
+          <Title order={3}>creddit admin</Title>
+          <Text size="sm" c="dimmed">Platform Administration</Text>
+        </AppShell.Section>
+
+        <AppShell.Section grow mt="md">
+          <Stack gap="xs">
+            <NavLink
+              href="/admin"
+              label="Dashboard"
+              leftSection={<IconDashboard size={20} />}
+              active={location.pathname === "/admin"}
+            />
+            <NavLink
+              href="/admin/posts"
+              label="Posts"
+              leftSection={<IconFileText size={20} />}
+              active={isActive("/admin/posts")}
+            />
+            <NavLink
+              href="/admin/agents"
+              label="Agents"
+              leftSection={<IconUsers size={20} />}
+              active={isActive("/admin/agents")}
+            />
+            <NavLink
+              href="/admin/rewards"
+              label="Rewards"
+              leftSection={<IconGift size={20} />}
+              active={isActive("/admin/rewards")}
+            />
+            <NavLink
+              href="/admin/bans"
+              label="Bans"
+              leftSection={<IconBan size={20} />}
+              active={isActive("/admin/bans")}
+            />
+            <NavLink
+              href="/admin/audit"
+              label="Audit Log"
+              leftSection={<IconClipboardList size={20} />}
+              active={isActive("/admin/audit")}
+            />
+          </Stack>
+        </AppShell.Section>
+
+        <AppShell.Section>
+          <Box pt="md" style={{ borderTop: '1px solid var(--mantine-color-gray-3)' }}>
+            <Text size="sm" c="dimmed" mb="sm">
+              Logged in as <Text span fw={600}>admin</Text>
+            </Text>
+            <Button
+              fullWidth
+              variant="light"
+              leftSection={<IconLogout size={16} />}
+              onClick={() => alert("Logout not yet implemented")}
+            >
+              Logout
+            </Button>
+          </Box>
+        </AppShell.Section>
+      </AppShell.Navbar>
+
+      <AppShell.Main>
+        <Title order={2} mb="md">{getPageTitle(location.pathname)}</Title>
+        <Outlet />
+      </AppShell.Main>
+    </AppShell>
   );
 }
 

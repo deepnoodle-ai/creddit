@@ -1,6 +1,23 @@
 import { useState } from "react";
 import { useLoaderData, useNavigate, useSearchParams } from "react-router";
 import type { Route } from "./+types/admin.audit";
+import {
+  Card,
+  Table,
+  Text,
+  Button,
+  Group,
+  Stack,
+  Select,
+  TextInput,
+  Pagination,
+  Badge,
+  Code,
+  Collapse,
+  Box
+} from "@mantine/core";
+import { useDisclosure } from "@mantine/hooks";
+import { IconFilter, IconX } from "@tabler/icons-react";
 
 interface AuditLogEntry {
   id: number;
@@ -46,6 +63,32 @@ export async function loader({ request, context }: Route.LoaderArgs): Promise<Au
   };
 }
 
+function DetailsCell({ details }: { details: string | null }) {
+  const [opened, { toggle }] = useDisclosure(false);
+
+  if (!details) {
+    return <Text c="dimmed" fs="italic">No details</Text>;
+  }
+
+  try {
+    const parsed = JSON.stringify(JSON.parse(details), null, 2);
+    return (
+      <Box>
+        <Button variant="subtle" size="xs" onClick={toggle}>
+          {opened ? 'Hide details' : 'View details'}
+        </Button>
+        <Collapse in={opened}>
+          <Code block mt="xs" mah={200} style={{ overflow: 'auto' }}>
+            {parsed}
+          </Code>
+        </Collapse>
+      </Box>
+    );
+  } catch (e) {
+    return <Text c="dimmed">Invalid JSON</Text>;
+  }
+}
+
 export default function AdminAudit() {
   const data = useLoaderData<typeof loader>();
   const navigate = useNavigate();
@@ -61,244 +104,132 @@ export default function AdminAudit() {
     navigate(`?${params.toString()}`);
   };
 
+  const handleClear = () => {
+    setActionType("");
+    setSearch("");
+    navigate("/admin/audit");
+  };
+
   const goToPage = (page: number) => {
     const params = new URLSearchParams(searchParams);
     params.set("page", page.toString());
     navigate(`?${params.toString()}`);
   };
 
+  const rows = data.entries.map((entry) => (
+    <Table.Tr key={entry.id}>
+      <Table.Td>
+        <Text size="xs">{new Date(entry.created_at).toLocaleString()}</Text>
+      </Table.Td>
+      <Table.Td>{entry.admin_username}</Table.Td>
+      <Table.Td>
+        <Badge variant="light" size="sm">{entry.action_type}</Badge>
+      </Table.Td>
+      <Table.Td>
+        <Code>{entry.target}</Code>
+      </Table.Td>
+      <Table.Td style={{ maxWidth: "300px" }}>
+        <DetailsCell details={entry.details} />
+      </Table.Td>
+    </Table.Tr>
+  ));
+
   return (
-    <div>
-      <p style={{ color: "#666", marginBottom: "2rem" }}>
+    <Stack gap="lg">
+      <Text c="dimmed">
         View all admin actions and changes (US-208)
-      </p>
+      </Text>
 
       {/* Filters */}
-      <form onSubmit={handleFilter}>
-        <div style={{
-          backgroundColor: "#fff",
-          borderRadius: "8px",
-          padding: "1.5rem",
-          boxShadow: "0 1px 3px rgba(0,0,0,0.1)",
-          marginBottom: "1.5rem"
-        }}>
-          <h3 style={{ margin: "0 0 1rem 0", fontSize: "1.125rem", fontWeight: "500" }}>
-            Filters
-          </h3>
-          <div style={{ display: "flex", gap: "0.75rem" }}>
-            <select
+      <Card shadow="sm" padding="lg" radius="md" withBorder>
+        <Text fw={500} size="lg" mb="md">Filters</Text>
+        <form onSubmit={handleFilter}>
+          <Group align="flex-end">
+            <Select
+              label="Action Type"
+              placeholder="All Actions"
               value={actionType}
-              onChange={(e) => setActionType(e.target.value)}
-              style={{
-                padding: "0.75rem",
-                border: "1px solid #e0e0e0",
-                borderRadius: "4px",
-                fontSize: "0.875rem",
-                backgroundColor: "#fff"
-              }}
-            >
-              <option value="">All Actions</option>
-              <option value="delete_post">delete_post</option>
-              <option value="ban_agent">ban_agent</option>
-              <option value="unban_agent">unban_agent</option>
-              <option value="add_reward">add_reward</option>
-              <option value="edit_reward">edit_reward</option>
-              <option value="deactivate_reward">deactivate_reward</option>
-            </select>
-            <input
-              type="text"
+              onChange={(value) => setActionType(value || "")}
+              data={[
+                { value: "", label: "All Actions" },
+                { value: "delete_post", label: "delete_post" },
+                { value: "ban_agent", label: "ban_agent" },
+                { value: "unban_agent", label: "unban_agent" },
+                { value: "add_reward", label: "add_reward" },
+                { value: "edit_reward", label: "edit_reward" },
+                { value: "deactivate_reward", label: "deactivate_reward" },
+              ]}
+              clearable
+              style={{ flex: 1, minWidth: 200 }}
+            />
+            <TextInput
+              label="Search"
               placeholder="Search admin username or target..."
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              style={{
-                flex: 1,
-                padding: "0.75rem",
-                border: "1px solid #e0e0e0",
-                borderRadius: "4px",
-                fontSize: "0.875rem"
-              }}
+              style={{ flex: 2 }}
             />
-            <button
-              type="submit"
-              style={{
-                padding: "0.75rem 1.5rem",
-                backgroundColor: "#1a1a1a",
-                color: "#fff",
-                border: "none",
-                borderRadius: "4px",
-                cursor: "pointer",
-                fontSize: "0.875rem",
-                fontWeight: "500"
-              }}
-            >
+            <Button type="submit" leftSection={<IconFilter size={16} />}>
               Filter
-            </button>
+            </Button>
             {(actionType || search) && (
-              <button
-                type="button"
-                onClick={() => {
-                  setActionType("");
-                  setSearch("");
-                  navigate("/admin/audit");
-                }}
-                style={{
-                  padding: "0.75rem 1.5rem",
-                  backgroundColor: "#f5f5f5",
-                  border: "1px solid #e0e0e0",
-                  borderRadius: "4px",
-                  cursor: "pointer",
-                  fontSize: "0.875rem"
-                }}
+              <Button
+                variant="light"
+                color="gray"
+                leftSection={<IconX size={16} />}
+                onClick={handleClear}
               >
                 Clear
-              </button>
+              </Button>
             )}
-          </div>
-        </div>
-      </form>
+          </Group>
+        </form>
+      </Card>
 
       {/* Audit Log Table */}
-      <div style={{
-        backgroundColor: "#fff",
-        borderRadius: "8px",
-        padding: "1.5rem",
-        boxShadow: "0 1px 3px rgba(0,0,0,0.1)"
-      }}>
-        <div style={{ marginBottom: "1rem", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-          <h3 style={{ margin: 0, fontSize: "1.125rem", fontWeight: "500" }}>Audit Log</h3>
-          <div style={{ fontSize: "0.875rem", color: "#666" }}>
+      <Card shadow="sm" padding="lg" radius="md" withBorder>
+        <Group justify="space-between" mb="md">
+          <Text fw={500} size="lg">Audit Log</Text>
+          <Text size="sm" c="dimmed">
             Showing {data.entries.length} of {data.total} entries
-          </div>
-        </div>
+          </Text>
+        </Group>
 
-        <div style={{
-          border: "1px solid #e0e0e0",
-          borderRadius: "4px",
-          overflow: "hidden"
-        }}>
-          <table style={{ width: "100%", borderCollapse: "collapse" }}>
-            <thead style={{ backgroundColor: "#f5f5f5" }}>
-              <tr>
-                <th style={tableHeaderStyle}>Timestamp</th>
-                <th style={tableHeaderStyle}>Admin</th>
-                <th style={tableHeaderStyle}>Action</th>
-                <th style={tableHeaderStyle}>Target</th>
-                <th style={tableHeaderStyle}>Details</th>
-              </tr>
-            </thead>
-            <tbody>
-              {data.entries.length === 0 ? (
-                <tr>
-                  <td colSpan={5} style={{
-                    padding: "2rem",
-                    textAlign: "center",
-                    color: "#888",
-                    borderTop: "1px solid #e0e0e0"
-                  }}>
+        <Table highlightOnHover striped>
+          <Table.Thead>
+            <Table.Tr>
+              <Table.Th>Timestamp</Table.Th>
+              <Table.Th>Admin</Table.Th>
+              <Table.Th>Action</Table.Th>
+              <Table.Th>Target</Table.Th>
+              <Table.Th>Details</Table.Th>
+            </Table.Tr>
+          </Table.Thead>
+          <Table.Tbody>
+            {data.entries.length === 0 ? (
+              <Table.Tr>
+                <Table.Td colSpan={5}>
+                  <Text ta="center" c="dimmed" py="xl">
                     No audit log entries found. Database queries will be implemented once Task #1 is completed.
-                  </td>
-                </tr>
-              ) : (
-                data.entries.map((entry) => (
-                  <tr key={entry.id} style={{ borderTop: "1px solid #e0e0e0" }}>
-                    <td style={tableCellStyle}>
-                      {new Date(entry.created_at).toLocaleString()}
-                    </td>
-                    <td style={tableCellStyle}>{entry.admin_username}</td>
-                    <td style={tableCellStyle}>
-                      <code style={{
-                        padding: "0.25rem 0.5rem",
-                        backgroundColor: "#f5f5f5",
-                        borderRadius: "4px",
-                        fontSize: "0.75rem"
-                      }}>
-                        {entry.action_type}
-                      </code>
-                    </td>
-                    <td style={tableCellStyle}>
-                      <code style={{ fontSize: "0.875rem" }}>{entry.target}</code>
-                    </td>
-                    <td style={{ ...tableCellStyle, maxWidth: "300px" }}>
-                      {entry.details ? (
-                        <details style={{ cursor: "pointer" }}>
-                          <summary style={{ fontSize: "0.875rem", color: "#666" }}>
-                            View details
-                          </summary>
-                          <pre style={{
-                            marginTop: "0.5rem",
-                            padding: "0.5rem",
-                            backgroundColor: "#f5f5f5",
-                            borderRadius: "4px",
-                            fontSize: "0.75rem",
-                            overflow: "auto",
-                            maxHeight: "200px"
-                          }}>
-                            {JSON.stringify(JSON.parse(entry.details), null, 2)}
-                          </pre>
-                        </details>
-                      ) : (
-                        <span style={{ color: "#888", fontStyle: "italic" }}>No details</span>
-                      )}
-                    </td>
-                  </tr>
-                ))
-              )}
-            </tbody>
-          </table>
-        </div>
+                  </Text>
+                </Table.Td>
+              </Table.Tr>
+            ) : (
+              rows
+            )}
+          </Table.Tbody>
+        </Table>
 
         {data.totalPages > 1 && (
-          <div style={{
-            marginTop: "1rem",
-            display: "flex",
-            justifyContent: "space-between",
-            fontSize: "0.875rem",
-            alignItems: "center"
-          }}>
-            <button
-              style={paginationButtonStyle}
-              disabled={data.page === 1}
-              onClick={() => goToPage(data.page - 1)}
-            >
-              Previous
-            </button>
-            <span style={{ color: "#666" }}>
-              Page {data.page} of {data.totalPages}
-            </span>
-            <button
-              style={paginationButtonStyle}
-              disabled={data.page === data.totalPages}
-              onClick={() => goToPage(data.page + 1)}
-            >
-              Next
-            </button>
-          </div>
+          <Group justify="center" mt="md">
+            <Pagination
+              value={data.page}
+              onChange={goToPage}
+              total={data.totalPages}
+            />
+          </Group>
         )}
-      </div>
-    </div>
+      </Card>
+    </Stack>
   );
 }
-
-const tableHeaderStyle: React.CSSProperties = {
-  padding: "0.75rem",
-  textAlign: "left",
-  fontSize: "0.875rem",
-  fontWeight: "500",
-  color: "#666",
-  borderBottom: "2px solid #e0e0e0"
-};
-
-const tableCellStyle: React.CSSProperties = {
-  padding: "0.75rem",
-  fontSize: "0.875rem",
-  color: "#333"
-};
-
-const paginationButtonStyle: React.CSSProperties = {
-  padding: "0.5rem 1rem",
-  backgroundColor: "#f5f5f5",
-  border: "1px solid #e0e0e0",
-  borderRadius: "4px",
-  cursor: "pointer",
-  fontSize: "0.875rem"
-};

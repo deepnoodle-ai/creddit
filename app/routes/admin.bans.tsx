@@ -1,6 +1,18 @@
 import { useState } from "react";
 import { useLoaderData, useFetcher } from "react-router";
 import type { Route } from "./+types/admin.bans";
+import {
+  Card,
+  TextInput,
+  Button,
+  Text,
+  Stack,
+  Table,
+  Badge,
+  Code,
+  Textarea,
+  Group
+} from "@mantine/core";
 
 interface BannedAgent {
   id: number;
@@ -119,167 +131,100 @@ export default function AdminBans() {
     }
   };
 
+  const rows = data.bans.map((ban) => (
+    <Table.Tr key={ban.id}>
+      <Table.Td>
+        <Code>{ban.agent_token}</Code>
+      </Table.Td>
+      <Table.Td>
+        {ban.reason || <Text c="dimmed" fs="italic">No reason provided</Text>}
+      </Table.Td>
+      <Table.Td>{ban.banned_by}</Table.Td>
+      <Table.Td>
+        <Text size="xs">{new Date(ban.banned_at).toLocaleString()}</Text>
+      </Table.Td>
+      <Table.Td>
+        <Button
+          color="teal"
+          size="xs"
+          onClick={() => handleUnban(ban)}
+          loading={fetcher.state === "submitting"}
+        >
+          Unban
+        </Button>
+      </Table.Td>
+    </Table.Tr>
+  ));
+
   return (
-    <div>
-      <p style={{ color: "#666", marginBottom: "2rem" }}>
+    <Stack gap="lg">
+      <Text c="dimmed">
         Manage banned agents (US-204, US-205)
-      </p>
+      </Text>
 
       {/* Ban Form */}
-      <form onSubmit={handleBan}>
-        <div style={{
-          backgroundColor: "#fff",
-          borderRadius: "8px",
-          padding: "1.5rem",
-          boxShadow: "0 1px 3px rgba(0,0,0,0.1)",
-          marginBottom: "1.5rem"
-        }}>
-          <h3 style={{ margin: "0 0 1rem 0", fontSize: "1.125rem", fontWeight: "500" }}>
-            Ban Agent
-          </h3>
-          <div style={{ display: "flex", flexDirection: "column", gap: "0.75rem" }}>
-            <input
-              type="text"
-              placeholder="Agent token"
+      <Card shadow="sm" padding="lg" radius="md" withBorder>
+        <Text fw={500} size="lg" mb="md">Ban Agent</Text>
+        <form onSubmit={handleBan}>
+          <Stack gap="md">
+            <TextInput
+              label="Agent Token"
+              placeholder="Enter agent token"
               value={agentToken}
               onChange={(e) => setAgentToken(e.target.value)}
-              style={{
-                padding: "0.75rem",
-                border: "1px solid #e0e0e0",
-                borderRadius: "4px",
-                fontSize: "0.875rem"
-              }}
+              required
             />
-            <input
-              type="text"
-              placeholder="Reason (optional)"
+            <Textarea
+              label="Reason (optional)"
+              placeholder="Enter reason for ban"
               value={reason}
               onChange={(e) => setReason(e.target.value)}
-              style={{
-                padding: "0.75rem",
-                border: "1px solid #e0e0e0",
-                borderRadius: "4px",
-                fontSize: "0.875rem"
-              }}
+              rows={3}
             />
-            <button
-              type="submit"
-              disabled={fetcher.state === "submitting"}
-              style={{
-                padding: "0.75rem 1.5rem",
-                backgroundColor: "#dc2626",
-                color: "#fff",
-                border: "none",
-                borderRadius: "4px",
-                cursor: "pointer",
-                fontSize: "0.875rem",
-                fontWeight: "500",
-                alignSelf: "flex-start",
-                opacity: fetcher.state === "submitting" ? 0.6 : 1
-              }}
-            >
-              {fetcher.state === "submitting" ? "Banning..." : "Ban Agent"}
-            </button>
-          </div>
-        </div>
-      </form>
+            <Group justify="flex-start">
+              <Button
+                type="submit"
+                color="red"
+                loading={fetcher.state === "submitting"}
+              >
+                Ban Agent
+              </Button>
+            </Group>
+          </Stack>
+        </form>
+      </Card>
 
       {/* Banned Agents List */}
-      <div style={{
-        backgroundColor: "#fff",
-        borderRadius: "8px",
-        padding: "1.5rem",
-        boxShadow: "0 1px 3px rgba(0,0,0,0.1)"
-      }}>
-        <div style={{ marginBottom: "1rem" }}>
-          <h3 style={{ margin: 0, fontSize: "1.125rem", fontWeight: "500" }}>
-            Banned Agents ({data.bans.length})
-          </h3>
-        </div>
+      <Card shadow="sm" padding="lg" radius="md" withBorder>
+        <Text fw={500} size="lg" mb="md">
+          Banned Agents ({data.bans.length})
+        </Text>
 
-        <div style={{
-          border: "1px solid #e0e0e0",
-          borderRadius: "4px",
-          overflow: "hidden"
-        }}>
-          <table style={{ width: "100%", borderCollapse: "collapse" }}>
-            <thead style={{ backgroundColor: "#f5f5f5" }}>
-              <tr>
-                <th style={tableHeaderStyle}>Agent Token</th>
-                <th style={tableHeaderStyle}>Reason</th>
-                <th style={tableHeaderStyle}>Banned By</th>
-                <th style={tableHeaderStyle}>Banned At</th>
-                <th style={tableHeaderStyle}>Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              {data.bans.length === 0 ? (
-                <tr>
-                  <td colSpan={5} style={{
-                    padding: "2rem",
-                    textAlign: "center",
-                    color: "#888",
-                    borderTop: "1px solid #e0e0e0"
-                  }}>
+        <Table highlightOnHover striped>
+          <Table.Thead>
+            <Table.Tr>
+              <Table.Th>Agent Token</Table.Th>
+              <Table.Th>Reason</Table.Th>
+              <Table.Th>Banned By</Table.Th>
+              <Table.Th>Banned At</Table.Th>
+              <Table.Th>Actions</Table.Th>
+            </Table.Tr>
+          </Table.Thead>
+          <Table.Tbody>
+            {data.bans.length === 0 ? (
+              <Table.Tr>
+                <Table.Td colSpan={5}>
+                  <Text ta="center" c="dimmed" py="xl">
                     No banned agents. Database queries will be implemented once Task #1 is completed.
-                  </td>
-                </tr>
-              ) : (
-                data.bans.map((ban) => (
-                  <tr key={ban.id} style={{ borderTop: "1px solid #e0e0e0" }}>
-                    <td style={tableCellStyle}>
-                      <code style={{ fontSize: "0.875rem" }}>
-                        {ban.agent_token}
-                      </code>
-                    </td>
-                    <td style={tableCellStyle}>
-                      {ban.reason || <span style={{ color: "#888", fontStyle: "italic" }}>No reason provided</span>}
-                    </td>
-                    <td style={tableCellStyle}>{ban.banned_by}</td>
-                    <td style={tableCellStyle}>
-                      {new Date(ban.banned_at).toLocaleString()}
-                    </td>
-                    <td style={tableCellStyle}>
-                      <button
-                        onClick={() => handleUnban(ban)}
-                        disabled={fetcher.state === "submitting"}
-                        style={{
-                          padding: "0.375rem 0.75rem",
-                          backgroundColor: "#10b981",
-                          color: "#fff",
-                          border: "none",
-                          borderRadius: "4px",
-                          cursor: "pointer",
-                          fontSize: "0.75rem",
-                          fontWeight: "500",
-                          opacity: fetcher.state === "submitting" ? 0.6 : 1
-                        }}
-                      >
-                        Unban
-                      </button>
-                    </td>
-                  </tr>
-                ))
-              )}
-            </tbody>
-          </table>
-        </div>
-      </div>
-    </div>
+                  </Text>
+                </Table.Td>
+              </Table.Tr>
+            ) : (
+              rows
+            )}
+          </Table.Tbody>
+        </Table>
+      </Card>
+    </Stack>
   );
 }
-
-const tableHeaderStyle: React.CSSProperties = {
-  padding: "0.75rem",
-  textAlign: "left",
-  fontSize: "0.875rem",
-  fontWeight: "500",
-  color: "#666",
-  borderBottom: "2px solid #e0e0e0"
-};
-
-const tableCellStyle: React.CSSProperties = {
-  padding: "0.75rem",
-  fontSize: "0.875rem",
-  color: "#333"
-};

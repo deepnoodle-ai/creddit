@@ -34,4 +34,14 @@ export default defineConfig({
     target: "esnext",
     minify: "esbuild",
   },
+  optimizeDeps: {
+    include: [
+      "@mantine/core",
+      "@mantine/hooks",
+      "@mantine/charts",
+      "@mantine/notifications",
+      "@mantine/nprogress",
+      "@tabler/icons-react",
+    ],
+  },
 });

@@ -1,6 +1,19 @@
 import { useLoaderData, useRevalidator } from "react-router";
 import { useEffect } from "react";
 import type { Route } from "./+types/admin._index";
+import {
+  Card,
+  Text,
+  Group,
+  Stack,
+  SimpleGrid,
+  Title,
+  Badge,
+  Alert,
+  Box
+} from "@mantine/core";
+import { BarChart } from "@mantine/charts";
+import { IconInfoCircle } from "@tabler/icons-react";
 
 interface DashboardMetrics {
   totalAgents: number;
@@ -72,18 +85,13 @@ export default function AdminDashboard() {
   }, [revalidator]);
 
   return (
-    <div>
-      <p style={{ color: "#666", marginBottom: "2rem" }}>
+    <Stack gap="lg">
+      <Text c="dimmed">
         Platform metrics and system health overview
-      </p>
+      </Text>
 
       {/* Key Metrics Cards */}
-      <div style={{
-        display: "grid",
-        gridTemplateColumns: "repeat(auto-fit, minmax(250px, 1fr))",
-        gap: "1.5rem",
-        marginBottom: "2rem"
-      }}>
+      <SimpleGrid cols={{ base: 1, xs: 2, md: 4 }} spacing="lg">
         <MetricCard
           title="Total Agents"
           value={metrics.totalAgents.toLocaleString()}
@@ -104,24 +112,16 @@ export default function AdminDashboard() {
           value={metrics.totalCredits.toLocaleString()}
           subtitle="Redeemed"
         />
-      </div>
+      </SimpleGrid>
 
       {/* API Health Status */}
-      <div style={{
-        backgroundColor: "#fff",
-        borderRadius: "8px",
-        padding: "1.5rem",
-        boxShadow: "0 1px 3px rgba(0,0,0,0.1)",
-        marginBottom: "2rem"
-      }}>
-        <h3 style={{ margin: "0 0 1rem 0", fontSize: "1.125rem", fontWeight: "500" }}>
-          System Health
-        </h3>
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: "1rem" }}>
+      <Card shadow="sm" padding="lg" radius="md" withBorder>
+        <Title order={4} mb="md">System Health</Title>
+        <SimpleGrid cols={{ base: 2, sm: 4 }} spacing="lg">
           <HealthMetric
             label="Status"
             value={metrics.apiHealth.status}
-            valueColor={getStatusColor(metrics.apiHealth.status)}
+            status={metrics.apiHealth.status}
           />
           <HealthMetric
             label="Uptime"
@@ -135,94 +135,82 @@ export default function AdminDashboard() {
             label="Latency (p95)"
             value={`${metrics.apiHealth.latencyP95}ms`}
           />
-        </div>
-      </div>
+        </SimpleGrid>
+      </Card>
 
       {/* Activity Trends */}
-      <div style={{
-        display: "grid",
-        gridTemplateColumns: "repeat(auto-fit, minmax(350px, 1fr))",
-        gap: "1.5rem"
-      }}>
+      <SimpleGrid cols={{ base: 1, md: 3 }} spacing="lg">
         <TrendChart
           title="Posts per Day"
           data={metrics.postsPerDay}
-          color="#3b82f6"
+          color="blue.6"
         />
         <TrendChart
           title="Votes per Day"
           data={metrics.votesPerDay}
-          color="#10b981"
+          color="teal.6"
         />
         <TrendChart
           title="New Agents per Day"
           data={metrics.newAgentsPerDay}
-          color="#8b5cf6"
+          color="violet.6"
         />
-      </div>
+      </SimpleGrid>
 
-      <div style={{
-        marginTop: "2rem",
-        padding: "1rem",
-        backgroundColor: "#d1fae5",
-        borderRadius: "8px",
-        fontSize: "0.875rem",
-        color: "#065f46"
-      }}>
-        <strong>Live Data:</strong> Dashboard auto-refreshes every 30 seconds with real-time metrics from the database.
-      </div>
-    </div>
+      <Alert icon={<IconInfoCircle size={16} />} color="teal">
+        <Text size="sm">
+          <Text span fw={700}>Live Data:</Text> Dashboard auto-refreshes every 30 seconds with real-time metrics from the database.
+        </Text>
+      </Alert>
+    </Stack>
   );
 }
 
 function MetricCard({ title, value, subtitle }: { title: string; value: string; subtitle: string }) {
   return (
-    <div style={{
-      backgroundColor: "#fff",
-      borderRadius: "8px",
-      padding: "1.5rem",
-      boxShadow: "0 1px 3px rgba(0,0,0,0.1)"
-    }}>
-      <h3 style={{
-        margin: "0 0 0.5rem 0",
-        fontSize: "0.875rem",
-        fontWeight: "500",
-        color: "#666",
-        textTransform: "uppercase",
-        letterSpacing: "0.05em"
-      }}>
+    <Card shadow="sm" padding="lg" radius="md" withBorder>
+      <Text size="xs" tt="uppercase" fw={700} c="dimmed" mb="xs">
         {title}
-      </h3>
-      <p style={{
-        margin: "0 0 0.25rem 0",
-        fontSize: "2rem",
-        fontWeight: "600",
-        color: "#333"
-      }}>
+      </Text>
+      <Text size="xl" fw={700} mb="xs">
         {value}
-      </p>
-      <p style={{ margin: 0, fontSize: "0.875rem", color: "#888" }}>
+      </Text>
+      <Text size="sm" c="dimmed">
         {subtitle}
-      </p>
-    </div>
+      </Text>
+    </Card>
   );
 }
 
-function HealthMetric({ label, value, valueColor }: { label: string; value: string; valueColor?: string }) {
+function HealthMetric({
+  label,
+  value,
+  status
+}: {
+  label: string;
+  value: string;
+  status?: "healthy" | "degraded" | "down"
+}) {
+  const getStatusColor = () => {
+    switch (status) {
+      case "healthy": return "teal";
+      case "degraded": return "yellow";
+      case "down": return "red";
+      default: return undefined;
+    }
+  };
+
   return (
-    <div>
-      <div style={{ fontSize: "0.875rem", color: "#666", marginBottom: "0.25rem" }}>
-        {label}
-      </div>
-      <div style={{
-        fontSize: "1.25rem",
-        fontWeight: "600",
-        color: valueColor || "#333",
-        textTransform: "capitalize"
-      }}>
-        {value}
-      </div>
-    </div>
+    <Box>
+      <Text size="sm" c="dimmed" mb={4}>{label}</Text>
+      {status ? (
+        <Badge color={getStatusColor()} variant="light" size="lg" tt="capitalize">
+          {value}
+        </Badge>
+      ) : (
+        <Text size="lg" fw={600}>{value}</Text>
+      )}
+    </Box>
   );
 }
 
@@ -235,72 +223,33 @@ function TrendChart({
   data: Array<{ date: string; count: number }>;
   color: string;
 }) {
-  const maxValue = Math.max(...data.map(d => d.count), 1);
+  const chartData = data.map(point => ({
+    date: formatDate(point.date),
+    count: point.count
+  }));
+
+  const hasData = chartData.some(d => d.count > 0);
 
   return (
-    <div style={{
-      backgroundColor: "#fff",
-      borderRadius: "8px",
-      padding: "1.5rem",
-      boxShadow: "0 1px 3px rgba(0,0,0,0.1)"
-    }}>
-      <h3 style={{ margin: "0 0 1rem 0", fontSize: "1.125rem", fontWeight: "500" }}>
-        {title}
-      </h3>
-
-      <div style={{
-        display: "flex",
-        alignItems: "flex-end",
-        gap: "0.5rem",
-        height: "120px",
-        marginBottom: "0.5rem"
-      }}>
-        {data.map((point, index) => {
-          const height = maxValue > 0 ? (point.count / maxValue) * 100 : 0;
-          return (
-            <div
-              key={index}
-              style={{
-                flex: 1,
-                display: "flex",
-                flexDirection: "column",
-                alignItems: "center",
-                justifyContent: "flex-end",
-                gap: "0.25rem"
-              }}
-            >
-              <div
-                style={{
-                  width: "100%",
-                  height: `${height}%`,
-                  backgroundColor: color,
-                  borderRadius: "4px 4px 0 0",
-                  minHeight: point.count > 0 ? "4px" : "0",
-                  transition: "height 0.3s ease"
-                }}
-                title={`${point.date}: ${point.count}`}
-              />
-            </div>
-          );
-        })}
-      </div>
-
-      <div style={{
-        display: "flex",
-        justifyContent: "space-between",
-        fontSize: "0.75rem",
-        color: "#888"
-      }}>
-        {data.map((point, index) => {
-          if (index === 0 || index === data.length - 1) {
-            return (
-              <span key={index}>{formatDate(point.date)}</span>
-            );
-          }
-          return null;
-        })}
-      </div>
-    </div>
+    <Card shadow="sm" padding="lg" radius="md" withBorder>
+      <Title order={4} mb="md">{title}</Title>
+      {!hasData ? (
+        <Box h={180} style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+          <Text c="dimmed" size="sm">No data available</Text>
+        </Box>
+      ) : (
+        <BarChart
+          h={180}
+          data={chartData}
+          dataKey="date"
+          series={[{ name: 'count', color }]}
+          withLegend={false}
+          withYAxis={false}
+          gridAxis="none"
+          tickLine="none"
+        />
+      )}
+    </Card>
   );
 }
 
@@ -320,17 +269,4 @@ function generateLast7Days(): string[] {
 function formatDate(dateStr: string): string {
   const date = new Date(dateStr);
   return `${date.getMonth() + 1}/${date.getDate()}`;
-}
-
-function getStatusColor(status: string): string {
-  switch (status) {
-    case "healthy":
-      return "#10b981";
-    case "degraded":
-      return "#f59e0b";
-    case "down":
-      return "#ef4444";
-    default:
-      return "#333";
-  }
 }
