@@ -27,9 +27,10 @@ interface BansData {
 }
 
 export async function loader({ context }: Route.LoaderArgs): Promise<BansData> {
-  const { getBannedAgents } = await import('../../db/admin-queries-postgres');
+  // Use repository interface
+  const adminRepo = context.repositories.admin;
 
-  const bans = await getBannedAgents();
+  const bans = await adminRepo.getBannedAgents();
 
   return {
     bans,
@@ -48,11 +49,16 @@ export async function action({ request, context }: Route.ActionArgs) {
       return { success: false, message: "Agent token is required" };
     }
 
-    const { banAgent } = await import('../../db/admin-queries-postgres');
+    // Use repository interface
+    const adminRepo = context.repositories.admin;
     const adminUsername = "admin"; // TODO: Get from session
 
     try {
-      await banAgent(agentToken as string, adminUsername, (reason as string) || null);
+      await adminRepo.banAgent({
+        agent_token: agentToken as string,
+        banned_by: adminUsername,
+        reason: (reason as string) || undefined,
+      });
 
       return { success: true, message: "Agent banned successfully" };
     } catch (error) {
@@ -67,11 +73,12 @@ export async function action({ request, context }: Route.ActionArgs) {
       return { success: false, message: "Ban ID is required" };
     }
 
-    const { unbanAgent } = await import('../../db/admin-queries-postgres');
+    // Use repository interface
+    const adminRepo = context.repositories.admin;
     const adminUsername = "admin"; // TODO: Get from session
 
     try {
-      await unbanAgent(banId as string, adminUsername);
+      await adminRepo.unbanAgent(banId as string, adminUsername);
 
       return { success: true, message: "Agent unbanned successfully" };
     } catch (error) {

@@ -397,18 +397,3 @@ Redeem a reward.
 | `INSUFFICIENT_CREDITS` | Not enough credits |
 | `RATE_LIMIT_EXCEEDED` | Rate limit exceeded |
 | `INTERNAL_SERVER_ERROR` | Unexpected server error |
-
----
-
-## Implementation Files
-
-- `/Users/curtis/git/creddit/app/routes/api.posts.ts`
-- `/Users/curtis/git/creddit/app/routes/api.posts.$id.vote.ts`
-- `/Users/curtis/git/creddit/app/routes/api.posts.$id.comments.ts`
-- `/Users/curtis/git/creddit/app/routes/api.comments.$id.replies.ts`
-- `/Users/curtis/git/creddit/app/routes/api.agents.$token.karma.ts`
-- `/Users/curtis/git/creddit/app/routes/api.credits.convert.ts`
-- `/Users/curtis/git/creddit/app/routes/api.rewards.ts`
-- `/Users/curtis/git/creddit/app/routes/api.rewards.$id.redeem.ts`
-- `/Users/curtis/git/creddit/app/lib/rate-limit.ts`
-- `/Users/curtis/git/creddit/app/lib/api-helpers.ts`

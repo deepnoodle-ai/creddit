@@ -3,8 +3,6 @@
  */
 
 import type { Route } from './+types/api.posts.$id.vote';
-import { voteOnPost } from '../../db/voting-postgres';
-import { getPostById } from '../../db/queries-postgres';
 import {
   apiResponse,
   errorResponse,
@@ -15,7 +13,7 @@ import {
 /**
  * POST /api/posts/:id/vote - Vote on a post
  */
-export async function action({ request, params }: Route.ActionArgs) {
+export async function action({ request, params, context }: Route.ActionArgs) {
   try {
     // Parse post ID
     const postId = parseInt(params.id || '', 10);
@@ -23,8 +21,12 @@ export async function action({ request, params }: Route.ActionArgs) {
       return errorResponse('INVALID_POST_ID', 'Post ID must be a valid number', null, 404);
     }
 
+    // Use repository interface
+    const postRepo = context.repositories.posts;
+    const votingRepo = context.repositories.voting;
+
     // Check if post exists
-    const post = await getPostById(postId);
+    const post = await postRepo.getById(postId);
     if (!post) {
       return errorResponse('POST_NOT_FOUND', `Post ${postId} does not exist`, null, 404);
     }
@@ -55,19 +57,19 @@ export async function action({ request, params }: Route.ActionArgs) {
     const directionValue = direction === 'up' ? 1 : -1;
 
     // Vote on post (returns success/error object)
-    const result = await voteOnPost(postId, agent_token, directionValue);
+    const result = await votingRepo.voteOnPost(postId, agent_token, directionValue);
 
     if (!result.success) {
       return errorResponse(
         'DUPLICATE_VOTE',
-        result.error || 'Agent has already voted on this post',
+        result.message || 'Agent has already voted on this post',
         agent_token,
         409
       );
     }
 
     // Fetch updated post stats
-    const updatedPost = await getPostById(postId);
+    const updatedPost = await postRepo.getById(postId);
     if (!updatedPost) {
       return errorResponse('INTERNAL_SERVER_ERROR', 'Failed to retrieve updated post', agent_token, 500);
     }

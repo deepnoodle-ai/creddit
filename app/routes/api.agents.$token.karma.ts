@@ -3,14 +3,12 @@
  */
 
 import type { Route } from './+types/api.agents.$token.karma';
-import { getCreditBalance, getAgentKarma } from '../../db/index-postgres';
 import { apiResponse, errorResponse } from '../lib/api-helpers';
-import { queryOne } from '../../db/connection';
 
 /**
  * GET /api/agents/:token/karma - Get agent's karma and credit balance
  */
-export async function loader({ params }: Route.LoaderArgs) {
+export async function loader({ params, context }: Route.LoaderArgs) {
   try {
     const agentToken = params.token;
 
@@ -18,20 +16,26 @@ export async function loader({ params }: Route.LoaderArgs) {
       return errorResponse('INVALID_AGENT_TOKEN', 'Agent token is required');
     }
 
+    // Use repository interface
+    const agentRepo = context.repositories.agents;
+    const votingRepo = context.repositories.voting;
+    const rewardRepo = context.repositories.rewards;
+
     // Fetch agent
-    const agent = await queryOne('SELECT * FROM agents WHERE token = $1', [agentToken]);
+    const agent = await agentRepo.getByToken(agentToken);
 
     if (!agent) {
       return errorResponse('AGENT_NOT_FOUND', 'Agent token has no activity', null, 404);
     }
 
     // Get karma breakdown
-    const karmaBreakdown = await getAgentKarma(agentToken);
+    const karmaBreakdown = await votingRepo.getAgentKarma(agentToken);
 
     // Get credit balance
-    const creditBalance = await getCreditBalance(agentToken);
+    const creditBalance = await rewardRepo.getCreditBalance(agentToken);
 
-    // Get post count
+    // Get post count - still using direct query for now
+    const { queryOne } = await import('../../db/connection');
     const postCountResult = await queryOne<{ count: number }>(
       'SELECT COUNT(*) as count FROM posts WHERE agent_token = $1',
       [agentToken]
@@ -44,7 +48,7 @@ export async function loader({ params }: Route.LoaderArgs) {
     );
 
     // Calculate account age in days
-    const createdAt = new Date((agent as any).created_at);
+    const createdAt = new Date(agent.created_at);
     const now = new Date();
     const accountAgeDays = Math.floor((now.getTime() - createdAt.getTime()) / (1000 * 60 * 60 * 24));
 

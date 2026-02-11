@@ -5,7 +5,6 @@
 
 import type { Route } from './+types/api.posts.$id.comments';
 import type { Comment } from '../../db/schema';
-import { createComment, getCommentsForPost, getPostById, getOrCreateAgent } from '../../db/queries-postgres';
 import {
   apiResponse,
   errorResponse,
@@ -53,7 +52,7 @@ function buildCommentTree(comments: Comment[]): ThreadedComment[] {
 /**
  * GET /api/posts/:id/comments - Get all comments on a post (threaded)
  */
-export async function loader({ params }: Route.LoaderArgs) {
+export async function loader({ params, context }: Route.LoaderArgs) {
   try {
     // Parse post ID
     const postId = parseInt(params.id || '', 10);
@@ -61,14 +60,18 @@ export async function loader({ params }: Route.LoaderArgs) {
       return errorResponse('INVALID_POST_ID', 'Post ID must be a valid number', null, 404);
     }
 
+    // Use repository interface
+    const postRepo = context.repositories.posts;
+    const commentRepo = context.repositories.comments;
+
     // Check if post exists
-    const post = await getPostById(postId);
+    const post = await postRepo.getById(postId);
     if (!post) {
       return errorResponse('POST_NOT_FOUND', `Post ${postId} does not exist`, null, 404);
     }
 
     // Fetch all comments for this post
-    const comments = await getCommentsForPost(postId);
+    const comments = await commentRepo.getByPost(postId);
 
     // Build threaded structure
     const threadedComments = buildCommentTree(comments);
@@ -91,7 +94,7 @@ export async function loader({ params }: Route.LoaderArgs) {
 /**
  * POST /api/posts/:id/comments - Create a top-level comment on a post
  */
-export async function action({ request, params }: Route.ActionArgs) {
+export async function action({ request, params, context }: Route.ActionArgs) {
   try {
     // Parse post ID
     const postId = parseInt(params.id || '', 10);
@@ -99,8 +102,13 @@ export async function action({ request, params }: Route.ActionArgs) {
       return errorResponse('INVALID_POST_ID', 'Post ID must be a valid number', null, 404);
     }
 
+    // Use repository interface
+    const postRepo = context.repositories.posts;
+    const agentRepo = context.repositories.agents;
+    const commentRepo = context.repositories.comments;
+
     // Check if post exists
-    const post = await getPostById(postId);
+    const post = await postRepo.getById(postId);
     if (!post) {
       return errorResponse('POST_NOT_FOUND', `Post ${postId} does not exist`, null, 404);
     }
@@ -133,10 +141,10 @@ export async function action({ request, params }: Route.ActionArgs) {
     }
 
     // Ensure agent exists
-    await getOrCreateAgent(agent_token);
+    await agentRepo.getOrCreate(agent_token);
 
     // Create comment
-    const commentId = await createComment({
+    const commentId = await commentRepo.create({
       post_id: postId,
       parent_comment_id: null,
       agent_token,

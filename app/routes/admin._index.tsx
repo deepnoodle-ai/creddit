@@ -33,15 +33,15 @@ interface DashboardMetrics {
 }
 
 export async function loader({ context }: Route.LoaderArgs): Promise<DashboardMetrics> {
-  // Import PostgreSQL admin queries
-  const { getDashboardMetrics, getPostsPerDay, getVotesPerDay, getNewAgentsPerDay } = await import('../../db/admin-queries-postgres');
+  // Use repository interface
+  const adminRepo = context.repositories.admin;
 
   // Fetch all metrics in parallel
   const [metrics, postsPerDay, votesPerDay, newAgentsPerDay] = await Promise.all([
-    getDashboardMetrics(),
-    getPostsPerDay(7),
-    getVotesPerDay(7),
-    getNewAgentsPerDay(7),
+    adminRepo.getDashboardMetrics(),
+    adminRepo.getPostsPerDay(7),
+    adminRepo.getVotesPerDay(7),
+    adminRepo.getNewAgentsPerDay(7),
   ]);
 
   // Fill in missing dates with zero counts

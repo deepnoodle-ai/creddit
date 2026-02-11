@@ -45,21 +45,16 @@ export async function loader({ request, context }: Route.LoaderArgs): Promise<Lo
     return { agent: null, searchToken: null };
   }
 
-  const {
-    getAgentProfile,
-    getAgentRecentPosts,
-    getAgentRecentVotes,
-    getAgentTransactions,
-    getAgentRedemptions,
-  } = await import('../../db/admin-queries-postgres');
+  // Use repository interface
+  const adminRepo = context.repositories.admin;
 
   // Fetch agent data in parallel
   const [profile, recentPosts, recentVotes, transactions, redemptions] = await Promise.all([
-    getAgentProfile(searchToken),
-    getAgentRecentPosts(searchToken, 20),
-    getAgentRecentVotes(searchToken, 50),
-    getAgentTransactions(searchToken),
-    getAgentRedemptions(searchToken),
+    adminRepo.getAgentProfile(searchToken),
+    adminRepo.getAgentRecentPosts(searchToken, 20),
+    adminRepo.getAgentRecentVotes(searchToken, 50),
+    adminRepo.getAgentTransactions(searchToken),
+    adminRepo.getAgentRedemptions(searchToken),
   ]);
 
   if (!profile) {

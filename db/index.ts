@@ -1,7 +1,7 @@
 /**
  * Database Module Exports
  *
- * Central export file for all database functionality.
+ * Central export file for all database functionality using clean architecture.
  */
 
 // Schema types
@@ -43,57 +43,29 @@ export {
   closeClient,
 } from './connection';
 
-// Query functions
-export {
-  getHotPosts,
-  getNewPosts,
-  getTopPosts,
-  createPost,
-  createVote,
-  calculateAgentKarma,
-  getOrCreateAgent,
-  getCommentsForPost,
-  createComment,
-  calculateCreditBalance,
-  getPostById,
-  getPostsByAgent,
-} from './queries-postgres';
+// Repository interfaces and types
+export type {
+  IPostRepository,
+  IVotingRepository,
+  IAgentRepository,
+  IRewardRepository,
+  ICommentRepository,
+  IAdminRepository,
+  VoteDirection,
+  VoteResult,
+  KarmaBreakdown,
+  ConversionResult,
+  RedemptionResult,
+  CreditBalance,
+  DashboardMetrics,
+  DailyActivity,
+  AgentProfile,
+  PostsPageData,
+} from './repositories';
 
-// Voting and karma logic
-export type { VoteDirection, VoteResult, KarmaBreakdown } from './voting-postgres';
-export {
-  voteOnPost,
-  voteOnComment,
-  removeVoteOnPost,
-  removeVoteOnComment,
-  getAgentKarma,
-  reconcileAgentKarma,
-  getPostVote,
-  getCommentVote,
-  getPostVoteCounts,
-  getCommentVoteCounts,
-} from './voting-postgres';
-
-// Credit conversion and rewards
-export type { ConversionResult, RedemptionResult, CreditBalance } from './rewards-postgres';
-export {
-  KARMA_TO_CREDIT_RATIO,
-  convertKarmaToCredits,
-  getCreditBalance,
-  calculateCreditBalanceFromTransactions,
-  reconcileCreditBalance,
-  createReward,
-  getActiveRewards,
-  getRewardById,
-  setRewardActive,
-  redeemReward,
-  updateRedemptionStatus,
-  refundRedemption,
-  getAgentRedemptions,
-  getPendingRedemptions,
-  getAgentTransactions,
-  getAgentActiveRewards,
-} from './rewards-postgres';
+// Dependency injection container
+export type { Repositories, DatabaseType } from './container';
+export { createRepositories, getDatabaseType } from './container';
 
 // Database seeding
 export {
@@ -104,21 +76,3 @@ export {
   clearDemoData,
   resetDatabase,
 } from './seed';
-
-// Admin utilities
-export {
-  createAdminUser,
-  getAdminUser,
-  updateAdminLastLogin,
-  banAgent,
-  unbanAgent,
-  isAgentBanned,
-  getBannedAgents,
-  logAdminAction,
-  getAdminActions,
-  deletePost,
-  deleteComment,
-  getPlatformStats,
-  getTopAgentsByKarma,
-  getRecentPostsForModeration,
-} from './admin-postgres';

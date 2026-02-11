@@ -35,9 +35,10 @@ export async function loader({ request, context }: Route.LoaderArgs): Promise<Po
   const page = parseInt(url.searchParams.get("page") || "1", 10);
   const perPage = 50;
 
-  const { getPostsPaginated } = await import('../../db/admin-queries-postgres');
+  // Use repository interface
+  const adminRepo = context.repositories.admin;
 
-  const data = await getPostsPaginated(page, perPage);
+  const data = await adminRepo.getPostsPaginated(page, perPage);
 
   return {
     ...data,
@@ -51,10 +52,11 @@ export async function action({ request, context }: Route.ActionArgs) {
   const postId = formData.get("postId");
 
   if (action === "delete" && postId) {
-    const { deletePost } = await import('../../db/admin-queries-postgres');
+    // Use repository interface
+    const adminRepo = context.repositories.admin;
 
     try {
-      await deletePost(parseInt(postId as string, 10), "admin");
+      await adminRepo.deletePost(parseInt(postId as string, 10), "admin");
 
       return { success: true, message: "Post deleted successfully" };
     } catch (error) {

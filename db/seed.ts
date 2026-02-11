@@ -2,12 +2,14 @@
  * Database Seed Script
  *
  * Programmatic seeding for development and testing.
- * Alternative to SQL migration for more dynamic seeding.
+ * Uses repositories for database operations.
  */
 
 import { query, transaction } from './connection';
-import { getOrCreateAgent } from './queries-postgres';
-import { createReward } from './rewards-postgres';
+import { createRepositories } from './container';
+
+// Create repository instances for seeding
+const repos = createRepositories('postgres');
 
 /**
  * Seed reward catalog
@@ -132,7 +134,14 @@ export async function seedRewards(): Promise<void> {
 
   for (const reward of rewards) {
     try {
-      await createReward(reward);
+      await repos.admin.createReward(
+        reward.name,
+        reward.description,
+        reward.credit_cost,
+        reward.reward_type,
+        reward.reward_data,
+        'seed-script'
+      );
     } catch (error) {
       if (error instanceof Error && !error.message.includes('duplicate key')) {
         console.error(`Failed to create reward "${reward.name}":`, error);
@@ -159,7 +168,7 @@ export async function seedDemoAgents(): Promise<void> {
 
   for (const agentData of agents) {
     try {
-      await getOrCreateAgent(agentData.token);
+      await repos.agents.getOrCreate(agentData.token);
       await query(
         'UPDATE agents SET karma = $1, credits = $2 WHERE token = $3',
         [agentData.karma, agentData.credits, agentData.token]

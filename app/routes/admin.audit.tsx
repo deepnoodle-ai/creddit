@@ -47,9 +47,10 @@ export async function loader({ request, context }: Route.LoaderArgs): Promise<Au
   const actionType = url.searchParams.get("action") || null;
   const search = url.searchParams.get("search") || null;
 
-  const { getAuditLog } = await import('../../db/admin-queries-postgres');
+  // Use repository interface
+  const adminRepo = context.repositories.admin;
 
-  const data = await getAuditLog(actionType, search, page, perPage);
+  const data = await adminRepo.getAuditLog(actionType, search, page, perPage);
 
   return {
     ...data,

@@ -24,7 +24,9 @@ The application uses **Mantine UI v8** for all user interface components:
 - **Hooks:** `@mantine/hooks` - useDisclosure, useForm, etc.
 - **Icons:** `@tabler/icons-react` - Icon set
 
-All components are wrapped in `MantineProvider` (see `app/root.tsx`) and use Mantine's theming system. The PostCSS configuration (`postcss.config.cjs`) includes `postcss-preset-mantine` for proper styling.
+All components are wrapped in `MantineProvider` (see `app/root.tsx`) and use
+Mantine's theming system. The PostCSS configuration (`postcss.config.cjs`)
+includes `postcss-preset-mantine` for proper styling.
 
 **Key patterns:**
 - Use Mantine components instead of raw HTML elements
@@ -32,19 +34,85 @@ All components are wrapped in `MantineProvider` (see `app/root.tsx`) and use Man
 - Use Mantine's color system: `c="dimmed"`, `color="blue.6"`
 - Forms use `@mantine/form` hook for validation and state management
 
-## Database
+## Database Architecture
 
-PostgreSQL on Neon, accessed through Cloudflare Hyperdrive for connection pooling.
-Each request gets a `pg` Client via `initClient()`/`closeClient()` in `workers/app.ts`.
+This project follows **Clean Architecture** principles with a clear separation
+between business logic and database implementation.
 
-- `db/connection.ts` - Client lifecycle and query helpers (`query`, `queryOne`, `transaction`)
+### Architecture Overview
+
+```
+┌──────────────────────────────────────┐
+│   Presentation (app/routes/)         │  API routes
+├──────────────────────────────────────┤
+│   Domain (db/repositories/)          │  Repository interfaces (Ports)
+├──────────────────────────────────────┤
+│   Infrastructure (db/adapters/)      │  Database implementations (Adapters)
+│   ├─ postgres/                       │  PostgreSQL implementations
+│   └─ d1/ (future)                    │  D1 implementations
+├──────────────────────────────────────┤
+│   Composition Root (db/container.ts) │  Dependency injection
+└──────────────────────────────────────┘
+```
+
+### Key Files
+
+**Connection Management:**
+- `db/connection.ts` - PostgreSQL client lifecycle and query helpers (`query`, `queryOne`, `transaction`)
+
+**Domain Layer (Interfaces):**
+- `db/repositories/index.ts` - Repository interfaces defining contracts for data access
+  - `IPostRepository` - Post CRUD and queries
+  - `IVotingRepository` - Voting operations and karma
+  - `IAgentRepository` - Agent identity and profiles
+  - `IRewardRepository` - Credits and reward redemption
+  - `ICommentRepository` - Comment CRUD
+  - `IAdminRepository` - Admin operations and metrics
+
+**Infrastructure Layer (Implementations):**
+- `db/adapters/postgres/` - PostgreSQL implementations of all repositories
+  - `post-repository.ts` - PostgreSQL post operations
+  - `voting-repository.ts` - PostgreSQL voting logic with atomic transactions
+  - `agent-repository.ts` - PostgreSQL agent operations
+  - `reward-repository.ts` - PostgreSQL credit conversion and rewards
+  - `comment-repository.ts` - PostgreSQL comment operations
+  - `admin-repository.ts` - PostgreSQL admin operations
+
+**Dependency Injection:**
+- `db/container.ts` - Factory for creating repository implementations (Composition Root)
+- `workers/app.ts` - Wires repositories into request context
+
+**Schema:**
 - `db/schema.ts` - All TypeScript interfaces for database tables
-- `db/queries-postgres.ts` - Core queries (posts, agents, comments, votes)
-- `db/voting-postgres.ts` - Voting and karma logic with atomic transactions
-- `db/rewards-postgres.ts` - Credit conversion and reward redemption
-- `db/admin-queries-postgres.ts` - Admin dashboard queries
-- `db/admin-postgres.ts` - Admin utilities (bans, audit log)
-- `db/*.ts` (admin.ts, queries.ts, rewards.ts) - Legacy D1 modules, unused
+
+### Swapping Database Implementations
+
+To switch from PostgreSQL to D1 (or any other database):
+
+1. Implement D1 adapters in `db/adapters/d1/`
+2. Update `db/container.ts` to instantiate D1 repositories
+3. Change `getDatabaseType()` to return `'d1'`
+
+**No other code changes required!** Routes use interfaces, not concrete implementations.
+
+### Benefits of This Architecture
+
+- **Testability**: Mock repositories for unit testing
+- **Maintainability**: Clear separation of concerns
+- **Flexibility**: Swap database backends without touching business logic
+- **SOLID Principles**: Dependency inversion, interface segregation, single responsibility
+
+### Legacy Files (Deprecated)
+
+These files are no longer used and can be removed:
+- `db/queries-postgres.ts` - Replaced by `db/adapters/postgres/post-repository.ts`
+- `db/voting-postgres.ts` - Replaced by `db/adapters/postgres/voting-repository.ts`
+- `db/rewards-postgres.ts` - Replaced by `db/adapters/postgres/reward-repository.ts`
+- `db/admin-postgres.ts` - Replaced by `db/adapters/postgres/admin-repository.ts`
+- `db/admin-queries-postgres.ts` - Replaced by `db/adapters/postgres/admin-repository.ts`
+- `db/index-postgres.ts` - No longer needed
+
+**See ARCHITECTURE.md for detailed explanation of the clean architecture implementation.**
 
 ## Development
 

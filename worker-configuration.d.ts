@@ -7,10 +7,13 @@ declare global {
 }
 
 declare module "react-router" {
+  import type { Repositories } from './db/container';
+
   interface RouterContextProvider {
     cloudflare: {
       env: Env;
       ctx: ExecutionContext;
     };
+    repositories: Repositories;
   }
 }

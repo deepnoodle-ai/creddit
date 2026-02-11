@@ -35,12 +35,13 @@ interface RewardsData {
 }
 
 export async function loader({ context }: Route.LoaderArgs): Promise<RewardsData> {
-  const { getAllRewards } = await import('../../db/admin-queries-postgres');
+  // Use repository interface
+  const adminRepo = context.repositories.admin;
 
-  const rewards = await getAllRewards();
+  const rewards = await adminRepo.getAllRewards();
 
   return {
-    rewards: rewards.map(r => ({ ...r, active: !!r.active })),
+    rewards: rewards.map((r: any) => ({ ...r, active: !!r.active })),
   };
 }
 
@@ -66,10 +67,11 @@ export async function action({ request, context }: Route.ActionArgs) {
       return { success: false, message: "Invalid JSON in reward_data" };
     }
 
-    const { createReward } = await import('../../db/admin-queries-postgres');
+    // Use repository interface
+    const adminRepo = context.repositories.admin;
 
     try {
-      await createReward(
+      await adminRepo.createReward(
         name as string,
         description as string,
         parseInt(creditCost as string, 10),
@@ -103,10 +105,11 @@ export async function action({ request, context }: Route.ActionArgs) {
       return { success: false, message: "Invalid JSON in reward_data" };
     }
 
-    const { updateReward } = await import('../../db/admin-queries-postgres');
+    // Use repository interface
+    const adminRepo = context.repositories.admin;
 
     try {
-      await updateReward(
+      await adminRepo.updateReward(
         parseInt(rewardId as string, 10),
         {
           name: name as string,
@@ -132,10 +135,11 @@ export async function action({ request, context }: Route.ActionArgs) {
       return { success: false, message: "Reward ID is required" };
     }
 
-    const { toggleRewardActive } = await import('../../db/admin-queries-postgres');
+    // Use repository interface
+    const adminRepo = context.repositories.admin;
 
     try {
-      await toggleRewardActive(parseInt(rewardId as string, 10), !currentActive, "admin");
+      await adminRepo.toggleRewardActive(parseInt(rewardId as string, 10), "admin");
 
       return { success: true, message: currentActive ? "Reward deactivated" : "Reward activated" };
     } catch (error) {

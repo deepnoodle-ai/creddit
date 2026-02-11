@@ -3,19 +3,22 @@
  */
 
 import type { Route } from './+types/api.rewards';
-import { getActiveRewards } from '../../db/index-postgres';
+import type { Reward } from '../../db/schema';
 import { apiResponse, errorResponse } from '../lib/api-helpers';
 
 /**
  * GET /api/rewards - Get available rewards catalog
  */
-export async function loader({}: Route.LoaderArgs) {
+export async function loader({ context }: Route.LoaderArgs) {
   try {
+    // Use repository interface
+    const rewardRepo = context.repositories.rewards;
+
     // Fetch active rewards
-    const rewards = await getActiveRewards();
+    const rewards = await rewardRepo.getActiveRewards();
 
     // Map to API response format (exclude internal fields)
-    const mappedRewards = rewards.map(r => ({
+    const mappedRewards = rewards.map((r: Reward) => ({
       id: r.id,
       name: r.name,
       description: r.description,

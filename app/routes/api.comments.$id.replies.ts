@@ -3,8 +3,6 @@
  */
 
 import type { Route } from './+types/api.comments.$id.replies';
-import { createComment, getOrCreateAgent } from '../../db/index-postgres';
-import { queryOne } from '../../db/connection';
 import {
   apiResponse,
   errorResponse,
@@ -15,7 +13,7 @@ import {
 /**
  * POST /api/comments/:id/replies - Reply to a comment
  */
-export async function action({ request, params }: Route.ActionArgs) {
+export async function action({ request, params, context }: Route.ActionArgs) {
   try {
     // Parse comment ID
     const commentId = parseInt(params.id || '', 10);
@@ -23,7 +21,12 @@ export async function action({ request, params }: Route.ActionArgs) {
       return errorResponse('INVALID_COMMENT_ID', 'Comment ID must be a valid number', null, 404);
     }
 
+    // Use repository interface
+    const agentRepo = context.repositories.agents;
+    const commentRepo = context.repositories.comments;
+
     // Check if parent comment exists
+    const { queryOne } = await import('../../db/connection');
     const parentComment = await queryOne('SELECT * FROM comments WHERE id = $1', [commentId]);
 
     if (!parentComment) {
@@ -58,10 +61,10 @@ export async function action({ request, params }: Route.ActionArgs) {
     }
 
     // Ensure agent exists
-    await getOrCreateAgent(agent_token);
+    await agentRepo.getOrCreate(agent_token);
 
     // Create reply comment
-    const replyId = await createComment({
+    const replyId = await commentRepo.create({
       post_id: (parentComment as any).post_id,
       parent_comment_id: commentId,
       agent_token,

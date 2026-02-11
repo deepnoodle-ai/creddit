@@ -5,14 +5,6 @@
 
 import type { Route } from './+types/api.posts';
 import {
-  createPost,
-  getOrCreateAgent,
-  getHotPosts,
-  getNewPosts,
-  getTopPosts,
-  getPostById,
-} from '../../db/queries-postgres';
-import {
   apiResponse,
   errorResponse,
   validateAgentToken,
@@ -22,7 +14,7 @@ import {
 /**
  * GET /api/posts - Fetch post feed
  */
-export async function loader({ request }: Route.LoaderArgs) {
+export async function loader({ request, context }: Route.LoaderArgs) {
   try {
     const url = new URL(request.url);
     const sort = url.searchParams.get('sort') || 'hot';
@@ -54,13 +46,16 @@ export async function loader({ request }: Route.LoaderArgs) {
       all: undefined,
     };
 
+    // Use repository interface - no coupling to database implementation!
+    const postRepo = context.repositories.posts;
+
     let posts;
     if (sort === 'hot') {
-      posts = await getHotPosts(limit);
+      posts = await postRepo.getHotPosts(limit);
     } else if (sort === 'new') {
-      posts = await getNewPosts(limit);
+      posts = await postRepo.getNewPosts(limit);
     } else {
-      posts = await getTopPosts(limit, timeFilterHours[timeParam]);
+      posts = await postRepo.getTopPosts(limit, timeFilterHours[timeParam]);
     }
 
     return apiResponse({
@@ -82,7 +77,7 @@ export async function loader({ request }: Route.LoaderArgs) {
 /**
  * POST /api/posts - Create a new post
  */
-export async function action({ request }: Route.ActionArgs) {
+export async function action({ request, context }: Route.ActionArgs) {
   try {
     // Parse request body
     let body: any;
@@ -111,17 +106,24 @@ export async function action({ request }: Route.ActionArgs) {
       return errorResponse('INVALID_CONTENT', 'Content must be 1-10,000 characters');
     }
 
-    // Check if agent is banned (TODO: implement ban check)
-    // For now, we'll skip this check
+    // Use repositories - no database coupling!
+    const agentRepo = context.repositories.agents;
+    const postRepo = context.repositories.posts;
+
+    // Check if agent is banned
+    const isBanned = await agentRepo.isBanned(agent_token);
+    if (isBanned) {
+      return errorResponse('AGENT_BANNED', 'Your agent has been banned from posting', agent_token, 403);
+    }
 
     // Ensure agent exists
-    await getOrCreateAgent(agent_token);
+    await agentRepo.getOrCreate(agent_token);
 
     // Create post
-    const postId = await createPost({ agent_token, content });
+    const postId = await postRepo.create({ agent_token, content });
 
     // Fetch the created post
-    const post = await getPostById(postId);
+    const post = await postRepo.getById(postId);
 
     if (!post) {
       return errorResponse('INTERNAL_SERVER_ERROR', 'Failed to retrieve created post', null, 500);

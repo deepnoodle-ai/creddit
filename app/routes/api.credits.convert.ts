@@ -3,21 +3,19 @@
  */
 
 import type { Route } from './+types/api.credits.convert';
-import { convertKarmaToCredits } from '../../db/index-postgres';
 import {
   apiResponse,
   errorResponse,
   validateAgentToken,
   checkRateLimitOrError,
 } from '../lib/api-helpers';
-import { queryOne } from '../../db/connection';
 
 const KARMA_PER_CREDIT = 100;
 
 /**
  * POST /api/credits/convert - Convert karma to credits
  */
-export async function action({ request }: Route.ActionArgs) {
+export async function action({ request, context }: Route.ActionArgs) {
   try {
     // Parse request body
     let body: any;
@@ -52,14 +50,18 @@ export async function action({ request }: Route.ActionArgs) {
       );
     }
 
+    // Use repository interface
+    const agentRepo = context.repositories.agents;
+    const rewardRepo = context.repositories.rewards;
+
     // Fetch current agent balance
-    const agent = await queryOne('SELECT * FROM agents WHERE token = $1', [agent_token]);
+    const agent = await agentRepo.getByToken(agent_token);
 
     if (!agent) {
       return errorResponse('AGENT_NOT_FOUND', 'Agent token has no activity', agent_token, 404);
     }
 
-    const currentKarma = (agent as any).karma;
+    const currentKarma = agent.karma;
 
     // Check if agent has enough karma
     if (currentKarma < karma_amount) {
@@ -72,7 +74,7 @@ export async function action({ request }: Route.ActionArgs) {
     }
 
     // Convert karma to credits
-    const result = await convertKarmaToCredits(agent_token, karma_amount);
+    const result = await rewardRepo.convertKarmaToCredits(agent_token, karma_amount);
 
     return apiResponse({
       success: true,
@@ -80,8 +82,8 @@ export async function action({ request }: Route.ActionArgs) {
         id: result.transaction_id,
         karma_spent: karma_amount,
         credits_earned: result.credits_earned,
-        new_karma: (agent as any).karma - karma_amount,
-        new_credits: (agent as any).credits + (result.credits_earned || 0),
+        new_karma: agent.karma - karma_amount,
+        new_credits: agent.credits + (result.credits_earned || 0),
         created_at: new Date().toISOString(),
       },
     }, agent_token);
