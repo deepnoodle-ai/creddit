@@ -1,0 +1,31 @@
+{
+  "name": "creddit",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "react-router dev",
+    "build": "react-router build",
+    "preview": "wrangler dev",
+    "deploy": "pnpm run build && wrangler deploy",
+    "typecheck": "tsc --noEmit",
+    "cf-typegen": "wrangler types"
+  },
+  "dependencies": {
+    "isbot": "^5.1.22",
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0",
+    "react-router": "^7.3.0"
+  },
+  "devDependencies": {
+    "@cloudflare/vite-plugin": "^1.0.7",
+    "@cloudflare/workers-types": "^4.20250313.0",
+    "@react-router/dev": "^7.3.0",
+    "@types/react": "^19.0.10",
+    "@types/react-dom": "^19.0.4",
+    "typescript": "^5.8.2",
+    "vite": "^6.2.4",
+    "vite-tsconfig-paths": "^5.1.4",
+    "wrangler": "^4.61.1"
+  }
+}
