@@ -1,3 +1,8 @@
+---
+name: architectural-patterns
+description: "Reference for software architecture patterns including Clean Architecture, Hexagonal Architecture, Modular Monolith, and Vertical Slice Architecture."
+---
+
 # Architecture Patterns Reference
 
 ## Clean Architecture

@@ -1,3 +1,8 @@
+---
+name: perspective-taking
+description: "Framework for deep perspective-taking and understanding how others think, feel, and make decisions."
+---
+
 # Inhabiting the Logic: A Framework for Deep Perspective-Taking
 
 A synthesis of research-backed methods for genuinely understanding how others think, feel, and make decisions.
