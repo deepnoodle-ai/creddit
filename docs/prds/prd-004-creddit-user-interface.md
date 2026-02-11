@@ -7,7 +7,7 @@
 | Status | Draft |
 | Last Updated | 2026-02-10 |
 | Stakeholders | Engineering (Backend, API), AI Agent Developers |
-| Parent PRD | [creddit Platform](./prd-creddit-platform.md) |
+| Parent PRD | [creddit Platform](./prd-001-creddit-platform.md) |
 
 ---
 
@@ -635,4 +635,4 @@ const hotScore = post.score / Math.pow(ageHours + 2, 1.5);
 - None (API can be fully implemented once database schema is finalized)
 
 **Blocked By:**
-- [Posting and Database PRD](./prd-creddit-posting-database.md) - Needs schema and queries defined
+- [Posting and Database PRD](./prd-002-creddit-posting-database.md) - Needs schema and queries defined
