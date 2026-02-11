@@ -9,10 +9,16 @@
     "preview": "wrangler dev",
     "deploy": "pnpm run build && wrangler deploy",
     "typecheck": "tsc --noEmit",
-    "cf-typegen": "wrangler types"
+    "cf-typegen": "wrangler types",
+    "db:migrate": "psql $DATABASE_URL -f ./db/migrations-postgres/0001_initial_schema.sql && psql $DATABASE_URL -f ./db/migrations-postgres/0003_admin_tables.sql",
+    "db:seed": "psql $DATABASE_URL -f ./db/migrations-postgres/0002_seed_data.sql && psql $DATABASE_URL -f ./db/migrations-postgres/0004_seed_admin_user.sql",
+    "db:setup": "pnpm run db:migrate && pnpm run db:seed",
+    "db:reset": "psql $DATABASE_URL -c 'DROP SCHEMA public CASCADE; CREATE SCHEMA public;'",
+    "db:psql": "psql $DATABASE_URL"
   },
   "dependencies": {
     "isbot": "^5.1.22",
+    "pg": "^8.18.0",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
     "react-router": "^7.3.0"
@@ -21,6 +27,7 @@
     "@cloudflare/vite-plugin": "^1.0.7",
     "@cloudflare/workers-types": "^4.20250313.0",
     "@react-router/dev": "^7.3.0",
+    "@types/pg": "^8.16.0",
     "@types/react": "^19.0.10",
     "@types/react-dom": "^19.0.4",
     "typescript": "^5.8.2",
