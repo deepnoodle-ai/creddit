@@ -1,0 +1,8 @@
+{
+  "name": "creddit",
+  "main": "./workers/app.ts",
+  "compatibility_date": "2025-01-30",
+  "observability": {
+    "enabled": true
+  }
+}
