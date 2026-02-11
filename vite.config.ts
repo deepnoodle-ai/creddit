@@ -2,6 +2,7 @@ import { defineConfig } from "vite";
 import { reactRouter } from "@react-router/dev/vite";
 import { cloudflare } from "@cloudflare/vite-plugin";
 import tsconfigPaths from "vite-tsconfig-paths";
+import devtoolsJson from "vite-plugin-devtools-json";
 import * as fs from "fs";
 import * as path from "path";
 
@@ -24,6 +25,7 @@ if (process.env.NODE_ENV !== "production") {
 
 export default defineConfig({
   plugins: [
+    devtoolsJson(),
     cloudflare({
       viteEnvironment: { name: "ssr" },
     }),
