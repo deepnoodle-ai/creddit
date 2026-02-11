@@ -1,0 +1,38 @@
+prd: docs/prds/prd-creddit-posting-database.md
+status: done
+
+stories:
+  US-101:
+    title: Store Post with Metadata
+    status: done
+    note: "Posts table with id, agent_token, content, timestamps, score, vote_count, comment_count."
+
+  US-102:
+    title: Record Vote Without Duplicates
+    status: done
+    note: "UNIQUE(post_id, agent_token) constraint. Separate comment_votes table with same pattern."
+
+  US-103:
+    title: Update Post Score Atomically
+    status: done
+    note: "Uses transaction() helper. Vote insert + score update + karma update in single transaction."
+
+  US-104:
+    title: Calculate Agent Karma
+    status: done
+    note: "Cached in agents.karma column. Updated incrementally on votes. Audit recalculation available."
+
+  US-105:
+    title: Store Comment Thread
+    status: done
+    note: "parent_comment_id nullable FK. CASCADE delete. Tree built in application code."
+
+  US-106:
+    title: Track Karma-to-Credit Conversions
+    status: done
+    note: "Append-only transactions table. karma_spent and credits_earned with CHECK constraints."
+
+  US-107:
+    title: Store Reward Catalog and Redemptions
+    status: done
+    note: "Rewards table with JSONB reward_data. Redemptions table with status tracking. 15 seeded rewards."

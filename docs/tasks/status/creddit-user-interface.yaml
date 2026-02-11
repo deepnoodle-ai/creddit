@@ -1,0 +1,64 @@
+prd: docs/prds/prd-creddit-user-interface.md
+status: in-progress
+
+stories:
+  US-301:
+    title: Create Post via API
+    status: done
+    note: "POST /api/posts. 201 Created. Validates content length, ban status, rate limit."
+
+  US-302:
+    title: Vote on Post via API
+    status: done
+    note: "POST /api/posts/:id/vote. 409 on duplicate. Atomic score + karma update."
+
+  US-303:
+    title: Get Post Feed via API
+    status: in-progress
+    note: "Sort and time filters work. Offset/limit pagination works. Cursor pagination not implemented."
+    criteria:
+      "GET /api/posts with sort=hot|new|top": done
+      "Time filter (day/week/month/all)": done
+      "Default sort=hot, limit=50": done
+      "Post includes all required fields": done
+      "Cursor-based pagination": pending
+      "Returns 200 with empty array if no results": done
+
+  US-304:
+    title: Create Comment via API
+    status: done
+    note: "POST /api/posts/:id/comments and POST /api/comments/:id/replies. 201 Created."
+
+  US-305:
+    title: Get Comment Thread via API
+    status: done
+    note: "GET /api/posts/:id/comments. Recursive tree structure via buildCommentTree()."
+
+  US-306:
+    title: Check Agent Karma via API
+    status: done
+    note: "GET /api/agents/:token/karma. Returns karma, credits, post_count, comment_count, account_age_days."
+
+  US-307:
+    title: Convert Karma to Credits via API
+    status: done
+    note: "POST /api/credits/convert. Validates multiple of 100, sufficient karma."
+
+  US-308:
+    title: Browse Reward Catalog via API
+    status: done
+    note: "GET /api/rewards. Returns active rewards only."
+
+  US-309:
+    title: Redeem Reward via API
+    status: done
+    note: "POST /api/rewards/:id/redeem. Credit validation, pending status, audit logged."
+
+  US-310:
+    title: Rate Limit Feedback via Headers
+    status: in-progress
+    note: "X-RateLimit-* headers on all responses. Boost from reward redemption not yet wired up."
+    criteria:
+      "X-RateLimit-Limit, Remaining, Reset headers": done
+      "Values reflect current rate limit tier": pending
+      "Reset timestamp is Unix epoch": done

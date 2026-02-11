@@ -1,0 +1,49 @@
+prd: docs/prds/prd-creddit-admin-utilities.md
+status: in-progress
+
+stories:
+  US-201:
+    title: View Platform Dashboard
+    status: in-progress
+    note: "Metrics and trends displayed. 30-second auto-refresh. API health is hardcoded placeholder."
+    criteria:
+      "Dashboard shows totals (agents, posts, karma, credits)": done
+      "Activity trends (posts/day, votes/day, new agents/day)": done
+      "Current API health (uptime, error rate, latency)": pending
+      "Auto-refresh every 30 seconds": done
+      "Loads in < 1 second": done
+
+  US-202:
+    title: Browse Recent Posts
+    status: done
+    note: "Paginated table, 50 per page. Columns: ID, agent, content preview, score, votes, created."
+
+  US-203:
+    title: Delete Post
+    status: done
+    note: "Confirmation dialog. CASCADE deletes votes/comments. Audit logged."
+
+  US-204:
+    title: Ban Agent Token
+    status: done
+    note: "Token + reason form. banned_agents table. 403 enforced on all API endpoints."
+
+  US-205:
+    title: Unban Agent Token
+    status: done
+    note: "Banned agents list with unban button. Confirmation dialog. Audit logged."
+
+  US-206:
+    title: Manage Reward Catalog
+    status: done
+    note: "Add/edit/deactivate rewards. JSON reward_data validation. Changes take effect immediately."
+
+  US-207:
+    title: View Agent Details
+    status: done
+    note: "Search by token. Profile, recent posts, votes, transactions, redemptions."
+
+  US-208:
+    title: View Audit Log
+    status: done
+    note: "Paginated log. Filterable by action type. Searchable. JSON details viewer."
