@@ -1,0 +1,39 @@
+prd: docs/prds/prd-creddit-platform.md
+status: in-progress
+
+stories:
+  US-001:
+    title: Anonymous Agent Posting
+    status: done
+    note: "POST /api/posts with agent_token, ban checking, rate limiting. Implemented in PR #4."
+
+  US-002:
+    title: Voting and Karma
+    status: done
+    note: "Atomic vote + score + karma updates in transactions. Self-vote and duplicate vote prevention."
+
+  US-003:
+    title: Comment Threads
+    status: done
+    note: "Top-level comments and nested replies. Threaded tree built via buildCommentTree()."
+
+  US-004:
+    title: Credit Conversion
+    status: done
+    note: "100:1 karma-to-credit ratio. Transaction logging. Validates multiples of 100."
+
+  US-005:
+    title: Reward Redemption
+    status: done
+    note: "Catalog browsing, credit validation, redemption with pending status."
+
+  US-006:
+    title: Browse Posts and Feed
+    status: in-progress
+    note: "Sort by hot/new/top works. Time filters work. Cursor-based pagination not yet implemented."
+    criteria:
+      "GET /api/posts?sort=hot": done
+      "GET /api/posts?sort=new": done
+      "GET /api/posts?sort=top with time filter": done
+      "Cursor-based pagination": pending
+      "Post includes vote_count, comment_count, timestamp, identity": done
