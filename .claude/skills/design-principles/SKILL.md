@@ -1,3 +1,8 @@
+---
+name: design-principles
+description: "Reference for software design principles including SOLID, DRY, YAGNI, and separation of concerns."
+---
+
 # Design Principles Reference
 
 ## SOLID Principles

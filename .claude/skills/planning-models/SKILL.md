@@ -1,3 +1,8 @@
+---
+name: planning-models
+description: "Comprehensive analysis of human planning frameworks, methodologies, and mental models across domains and complexity levels."
+---
+
 # How Humans Plan: Frameworks, Methodologies, and Mental Models
 
 A comprehensive analysis of how humans plan actions to achieve goals across domains, timescales, and complexity levels.
