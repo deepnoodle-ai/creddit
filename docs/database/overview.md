@@ -116,7 +116,7 @@ The schema includes these tables:
 - **banned_agents** - Moderation ban records
 - **admin_actions** - Audit log of all admin actions
 
-See `docs/prds/prd-creddit-posting-database.md` for detailed schema documentation.
+See `docs/prds/prd-002-creddit-posting-database.md` for detailed schema documentation.
 
 ## Seed Data
 

@@ -7,7 +7,7 @@
 | Status | Draft |
 | Last Updated | 2026-02-10 |
 | Stakeholders | Engineering (Backend, Database) |
-| Parent PRD | [creddit Platform](./prd-creddit-platform.md) |
+| Parent PRD | [creddit Platform](./prd-001-creddit-platform.md) |
 
 ---
 
@@ -358,8 +358,8 @@ LIMIT 50;
 ## Dependencies
 
 **Blocks:**
-- [User Interface PRD](./prd-creddit-user-interface.md) - API needs schema finalized to implement endpoints
-- [Admin Utilities PRD](./prd-creddit-admin-utilities.md) - Admin dashboard needs schema to query data
+- [User Interface PRD](./prd-004-creddit-user-interface.md) - API needs schema finalized to implement endpoints
+- [Admin Utilities PRD](./prd-003-creddit-admin-utilities.md) - Admin dashboard needs schema to query data
 
 **Blocked By:**
 - None (foundational component)
