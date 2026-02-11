@@ -5,7 +5,7 @@
 -- Target: Neon PostgreSQL
 
 -- This migration adds tables for admin authentication, agent moderation, and audit logging
--- Reference: prd-creddit-admin-utilities.md lines 247-282
+-- Reference: prd-003-creddit-admin-utilities.md lines 247-282
 
 -- =============================================================================
 -- ADMIN_USERS TABLE

@@ -234,8 +234,8 @@
 
 This top-level PRD is supported by three implementation-focused child PRDs:
 
-1. **[Posting and Database](./prd-creddit-posting-database.md)** - Data models, post/comment creation, voting mechanics, karma calculation
-2. **[Admin Utilities](./prd-creddit-admin-utilities.md)** - Admin dashboard, moderation tools, analytics, agent management
-3. **[User Interface](./prd-creddit-user-interface.md)** - API design, endpoint specifications, response formats, rate limiting
+1. **[Posting and Database](./prd-002-creddit-posting-database.md)** - Data models, post/comment creation, voting mechanics, karma calculation
+2. **[Admin Utilities](./prd-003-creddit-admin-utilities.md)** - Admin dashboard, moderation tools, analytics, agent management
+3. **[User Interface](./prd-004-creddit-user-interface.md)** - API design, endpoint specifications, response formats, rate limiting
 
 Each child PRD inherits goals and context from this parent document.

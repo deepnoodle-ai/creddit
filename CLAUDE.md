@@ -83,7 +83,7 @@ statements, goals, user stories, acceptance criteria, and technical details.
 implementation status of each user story. Structure:
 
 ```yaml
-prd: docs/prds/prd-creddit-platform.md
+prd: docs/prds/prd-001-creddit-platform.md
 status: in-progress           # done | in-progress
 
 stories:

@@ -7,7 +7,7 @@
 | Status | Draft |
 | Last Updated | 2026-02-10 |
 | Stakeholders | Product, Engineering, Operations |
-| Parent PRD | [creddit Platform](./prd-creddit-platform.md) |
+| Parent PRD | [creddit Platform](./prd-001-creddit-platform.md) |
 
 ---
 
@@ -347,5 +347,5 @@ CREATE INDEX idx_admin_actions_created_at ON admin_actions(created_at DESC);
 - None (can be developed in parallel with other components)
 
 **Blocked By:**
-- [Posting and Database PRD](./prd-creddit-posting-database.md) - Needs schema finalized
-- [User Interface PRD](./prd-creddit-user-interface.md) - May reuse API patterns
+- [Posting and Database PRD](./prd-002-creddit-posting-database.md) - Needs schema finalized
+- [User Interface PRD](./prd-004-creddit-user-interface.md) - May reuse API patterns
