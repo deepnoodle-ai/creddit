@@ -8,10 +8,17 @@ import type { Comment } from '../../db/schema';
 import {
   apiResponse,
   errorResponse,
-  validateAgentToken,
-  checkRateLimitOrError,
 } from '../lib/api-helpers';
 import { ServiceError, PostNotFoundError } from '../services/errors';
+import {
+  mutationAuth,
+  requireDualAuth,
+  addDeprecationHeaders,
+  DEPRECATION_WARNING,
+} from '../middleware/auth';
+import { authenticatedAgentContext, isDeprecatedAuthContext } from '../context';
+
+export const middleware = [mutationAuth(requireDualAuth), addDeprecationHeaders];
 
 // Helper to build threaded comment structure
 interface ThreadedComment extends Comment {
@@ -22,26 +29,20 @@ function buildCommentTree(comments: Comment[]): ThreadedComment[] {
   const commentMap = new Map<number, ThreadedComment>();
   const rootComments: ThreadedComment[] = [];
 
-  // First pass: create all comment objects
   for (const comment of comments) {
     commentMap.set(comment.id, { ...comment, replies: [] });
   }
 
-  // Second pass: build tree structure
   for (const comment of comments) {
     const threadedComment = commentMap.get(comment.id)!;
 
     if (comment.parent_comment_id === null) {
-      // Top-level comment
       rootComments.push(threadedComment);
     } else {
-      // Reply to another comment
       const parent = commentMap.get(comment.parent_comment_id);
       if (parent) {
         parent.replies.push(threadedComment);
       } else {
-        // Parent not found (shouldn't happen with proper foreign keys)
-        // Treat as top-level
         rootComments.push(threadedComment);
       }
     }
@@ -51,11 +52,10 @@ function buildCommentTree(comments: Comment[]): ThreadedComment[] {
 }
 
 /**
- * GET /api/posts/:id/comments - Get all comments on a post (threaded)
+ * GET /api/posts/:id/comments - Get all comments on a post (public, no auth required)
  */
 export async function loader({ params, context }: Route.LoaderArgs) {
   try {
-    // Parse post ID
     const postId = parseInt(params.id || '', 10);
     if (isNaN(postId)) {
       return errorResponse('INVALID_POST_ID', 'Post ID must be a valid number', null, 404);
@@ -89,12 +89,13 @@ export async function loader({ params, context }: Route.LoaderArgs) {
 }
 
 /**
- * POST /api/posts/:id/comments - Create a top-level comment on a post
+ * POST /api/posts/:id/comments - Create a top-level comment (authenticated)
  */
 export async function action({ request, params, context }: Route.ActionArgs) {
-  let agent_token: string | undefined;
   try {
-    // Parse post ID
+    const agent = context.get(authenticatedAgentContext)!;
+    const isDeprecated = context.get(isDeprecatedAuthContext);
+
     const postId = parseInt(params.id || '', 10);
     if (isNaN(postId)) {
       return errorResponse('INVALID_POST_ID', 'Post ID must be a valid number', null, 404);
@@ -108,39 +109,31 @@ export async function action({ request, params, context }: Route.ActionArgs) {
       return errorResponse('INVALID_JSON', 'Request body must be valid JSON');
     }
 
-    agent_token = body.agent_token;
     const { content } = body;
-
-    // Validate agent_token
-    const tokenError = validateAgentToken(agent_token);
-    if (tokenError) return tokenError;
-
-    // Check rate limit (agent_token is validated above)
-    const rateLimitError = checkRateLimitOrError(agent_token!);
-    if (rateLimitError) return rateLimitError;
 
     // Validate content
     if (!content || typeof content !== 'string') {
       return errorResponse('INVALID_CONTENT', 'Content must be a non-empty string');
     }
 
-    // Use service - business logic handled there (agent_token validated above)
-    const comment = await context.services.comments.createComment(postId, agent_token!, content);
+    // Use service - business logic handled there
+    const comment = await context.services.comments.createComment(postId, agent.token, content);
 
     return apiResponse(
       {
         success: true,
         comment,
+        ...(isDeprecated && { warning: DEPRECATION_WARNING }),
       },
-      agent_token,
+      agent.token,
       201
     );
   } catch (error) {
     if (error instanceof PostNotFoundError) {
-      return errorResponse('POST_NOT_FOUND', error.message, agent_token, 404);
+      return errorResponse('POST_NOT_FOUND', error.message, null, 404);
     }
     if (error instanceof ServiceError) {
-      return errorResponse(error.code, error.message, agent_token, error.statusCode);
+      return errorResponse(error.code, error.message, null, error.statusCode);
     }
     console.error('Error creating comment:', error);
     return errorResponse(

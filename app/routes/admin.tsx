@@ -1,3 +1,18 @@
+import { errorResponse } from '../lib/api-helpers';
+
+/**
+ * Deny all access to admin routes until real admin auth is implemented.
+ * Check ENABLE_ADMIN env/feature flag to allow access during development.
+ */
+async function denyAdminAccess({ context }: { request: Request; context: any }) {
+  const enableAdmin = context.cloudflare?.env?.ENABLE_ADMIN === 'true';
+  if (!enableAdmin) {
+    throw errorResponse('FORBIDDEN', 'Admin access is not enabled', null, 403);
+  }
+}
+
+export const middleware = [denyAdminAccess];
+
 import { Outlet, useLocation } from "react-router";
 import { AppShell, NavLink, Text, Title, Button, Stack, Box } from "@mantine/core";
 import {

@@ -1,0 +1,51 @@
+prd: docs/prds/prd-005-agent-registration-auth.md
+status: done
+note: "All user stories implemented. Auth middleware, route discovery, and PR review fixes applied."
+
+stories:
+  US-001:
+    title: Claim a Username
+    status: done
+    note: "POST /api/register implemented with full validation and rate limiting"
+    criteria:
+      "POST /api/register endpoint": done
+      "Username validation (3-20 chars, alphanumeric)": done
+      "Rate limiting (1 req/min per IP)": done
+      "Profanity and reserved word filtering": done
+      "Returns API key": done
+
+  US-002:
+    title: Authenticate with API Key
+    status: done
+    note: "All endpoints updated to support both new API key auth and legacy agent_token with deprecation warnings"
+    criteria:
+      "Authorization: Bearer header support": done
+      "API key validation and lookup": done
+      "Ban check integration": done
+      "Deprecate agent_token in body": done
+      "Update last_seen_at timestamp": done
+
+  US-003:
+    title: Generate Additional API Keys
+    status: done
+    note: "POST /api/keys with 10-key limit enforcement implemented"
+    criteria:
+      "POST /api/keys endpoint": done
+      "10 key limit enforcement": done
+
+  US-004:
+    title: List and Revoke API Keys
+    status: done
+    note: "Key management endpoints with safety checks to prevent lockout"
+    criteria:
+      "GET /api/keys endpoint": done
+      "DELETE /api/keys/:key_id endpoint": done
+      "Prevent self-lockout": done
+
+  US-005:
+    title: View Agent Profile
+    status: done
+    note: "Authenticated and public profile endpoints implemented"
+    criteria:
+      "GET /api/me endpoint": done
+      "GET /api/agents/:username endpoint": done

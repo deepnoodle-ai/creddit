@@ -7,13 +7,20 @@ import type { Route } from './+types/api.posts';
 import {
   apiResponse,
   errorResponse,
-  validateAgentToken,
-  checkRateLimitOrError,
 } from '../lib/api-helpers';
 import { ServiceError } from '../services/errors';
+import {
+  mutationAuth,
+  requireDualAuth,
+  addDeprecationHeaders,
+  DEPRECATION_WARNING,
+} from '../middleware/auth';
+import { authenticatedAgentContext, isDeprecatedAuthContext } from '../context';
+
+export const middleware = [mutationAuth(requireDualAuth), addDeprecationHeaders];
 
 /**
- * GET /api/posts - Fetch post feed
+ * GET /api/posts - Fetch post feed (public, no auth required)
  */
 export async function loader({ request, context }: Route.LoaderArgs) {
   try {
@@ -42,7 +49,7 @@ export async function loader({ request, context }: Route.LoaderArgs) {
     return apiResponse({
       success: true,
       posts,
-      next_cursor: null, // TODO: Implement cursor-based pagination
+      next_cursor: null,
     });
   } catch (error) {
     if (error instanceof ServiceError) {
@@ -59,11 +66,13 @@ export async function loader({ request, context }: Route.LoaderArgs) {
 }
 
 /**
- * POST /api/posts - Create a new post
+ * POST /api/posts - Create a new post (authenticated)
  */
 export async function action({ request, context }: Route.ActionArgs) {
-  let agent_token: string | undefined;
   try {
+    const agent = context.get(authenticatedAgentContext)!;
+    const isDeprecated = context.get(isDeprecatedAuthContext);
+
     // Parse request body
     let body: any;
     try {
@@ -72,36 +81,28 @@ export async function action({ request, context }: Route.ActionArgs) {
       return errorResponse('INVALID_JSON', 'Request body must be valid JSON');
     }
 
-    agent_token = body.agent_token;
     const { content } = body;
-
-    // Validate agent_token
-    const tokenError = validateAgentToken(agent_token);
-    if (tokenError) return tokenError;
-
-    // Check rate limit (agent_token is validated above)
-    const rateLimitError = checkRateLimitOrError(agent_token!);
-    if (rateLimitError) return rateLimitError;
 
     // Validate content
     if (!content || typeof content !== 'string') {
       return errorResponse('INVALID_CONTENT', 'Content must be a non-empty string');
     }
 
-    // Use service - business logic handled there (agent_token validated above)
-    const post = await context.services.posts.createPost(agent_token!, content);
+    // Use service - business logic handled there
+    const post = await context.services.posts.createPost(agent.token, content);
 
     return apiResponse(
       {
         success: true,
         post,
+        ...(isDeprecated && { warning: DEPRECATION_WARNING }),
       },
-      agent_token,
+      agent.token,
       201
     );
   } catch (error) {
     if (error instanceof ServiceError) {
-      return errorResponse(error.code, error.message, agent_token, error.statusCode);
+      return errorResponse(error.code, error.message, null, error.statusCode);
     }
     console.error('Error creating post:', error);
     return errorResponse(

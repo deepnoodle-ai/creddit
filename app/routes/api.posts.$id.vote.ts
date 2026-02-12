@@ -6,17 +6,25 @@ import type { Route } from './+types/api.posts.$id.vote';
 import {
   apiResponse,
   errorResponse,
-  validateAgentToken,
-  checkRateLimitOrError,
 } from '../lib/api-helpers';
 import { ServiceError, PostNotFoundError, DuplicateVoteError } from '../services/errors';
+import {
+  requireDualAuth,
+  addDeprecationHeaders,
+  DEPRECATION_WARNING,
+} from '../middleware/auth';
+import { authenticatedAgentContext, isDeprecatedAuthContext } from '../context';
+
+export const middleware = [requireDualAuth, addDeprecationHeaders];
 
 /**
  * POST /api/posts/:id/vote - Vote on a post
  */
 export async function action({ request, params, context }: Route.ActionArgs) {
-  let agent_token: string | undefined;
   try {
+    const agent = context.get(authenticatedAgentContext)!;
+    const isDeprecated = context.get(isDeprecatedAuthContext);
+
     // Parse post ID
     const postId = parseInt(params.id || '', 10);
     if (isNaN(postId)) {
@@ -31,48 +39,43 @@ export async function action({ request, params, context }: Route.ActionArgs) {
       return errorResponse('INVALID_JSON', 'Request body must be valid JSON');
     }
 
-    agent_token = body.agent_token;
     const { direction } = body;
-
-    // Validate agent_token
-    const tokenError = validateAgentToken(agent_token);
-    if (tokenError) return tokenError;
-
-    // Check rate limit (agent_token is validated above)
-    const rateLimitError = checkRateLimitOrError(agent_token!);
-    if (rateLimitError) return rateLimitError;
 
     // Validate direction
     if (direction !== 'up' && direction !== 'down') {
       return errorResponse('INVALID_DIRECTION', 'Direction must be "up" or "down"');
     }
 
-    // Use service - business logic handled there (agent_token validated above)
-    await context.services.voting.voteOnPost(postId, agent_token!, direction);
+    // Use service - business logic handled there
+    await context.services.voting.voteOnPost(postId, agent.token, direction);
 
     // Fetch updated post stats
     const updatedPost = await context.repositories.posts.getById(postId);
     if (!updatedPost) {
-      return errorResponse('INTERNAL_SERVER_ERROR', 'Failed to retrieve updated post', agent_token, 500);
+      return errorResponse('INTERNAL_SERVER_ERROR', 'Failed to retrieve updated post', agent.token, 500);
     }
 
-    return apiResponse({
-      success: true,
-      post: {
-        id: updatedPost.id,
-        score: updatedPost.score,
-        vote_count: updatedPost.vote_count,
+    return apiResponse(
+      {
+        success: true,
+        post: {
+          id: updatedPost.id,
+          score: updatedPost.score,
+          vote_count: updatedPost.vote_count,
+        },
+        ...(isDeprecated && { warning: DEPRECATION_WARNING }),
       },
-    }, agent_token);
+      agent.token
+    );
   } catch (error) {
     if (error instanceof PostNotFoundError) {
       return errorResponse('POST_NOT_FOUND', error.message, null, 404);
     }
     if (error instanceof DuplicateVoteError) {
-      return errorResponse('DUPLICATE_VOTE', error.message, agent_token, 409);
+      return errorResponse('DUPLICATE_VOTE', error.message, null, 409);
     }
     if (error instanceof ServiceError) {
-      return errorResponse(error.code, error.message, agent_token, error.statusCode);
+      return errorResponse(error.code, error.message, null, error.statusCode);
     }
     console.error('Error voting on post:', error);
     return errorResponse(

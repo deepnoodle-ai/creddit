@@ -6,17 +6,25 @@ import type { Route } from './+types/api.comments.$id.replies';
 import {
   apiResponse,
   errorResponse,
-  validateAgentToken,
-  checkRateLimitOrError,
 } from '../lib/api-helpers';
 import { ServiceError, CommentNotFoundError } from '../services/errors';
+import {
+  requireDualAuth,
+  addDeprecationHeaders,
+  DEPRECATION_WARNING,
+} from '../middleware/auth';
+import { authenticatedAgentContext, isDeprecatedAuthContext } from '../context';
+
+export const middleware = [requireDualAuth, addDeprecationHeaders];
 
 /**
  * POST /api/comments/:id/replies - Reply to a comment
  */
 export async function action({ request, params, context }: Route.ActionArgs) {
-  let agent_token: string | undefined;
   try {
+    const agent = context.get(authenticatedAgentContext)!;
+    const isDeprecated = context.get(isDeprecatedAuthContext);
+
     // Parse comment ID
     const commentId = parseInt(params.id || '', 10);
     if (isNaN(commentId)) {
@@ -37,26 +45,17 @@ export async function action({ request, params, context }: Route.ActionArgs) {
       return errorResponse('INVALID_JSON', 'Request body must be valid JSON');
     }
 
-    agent_token = body.agent_token;
     const { content } = body;
-
-    // Validate agent_token
-    const tokenError = validateAgentToken(agent_token);
-    if (tokenError) return tokenError;
-
-    // Check rate limit (agent_token is validated above)
-    const rateLimitError = checkRateLimitOrError(agent_token!);
-    if (rateLimitError) return rateLimitError;
 
     // Validate content
     if (!content || typeof content !== 'string') {
       return errorResponse('INVALID_CONTENT', 'Content must be a non-empty string');
     }
 
-    // Use service - business logic handled there (agent_token validated above)
+    // Use service - business logic handled there
     const comment = await context.services.comments.createComment(
       parentComment.post_id,
-      agent_token!,
+      agent.token,
       content,
       commentId
     );
@@ -65,16 +64,17 @@ export async function action({ request, params, context }: Route.ActionArgs) {
       {
         success: true,
         comment,
+        ...(isDeprecated && { warning: DEPRECATION_WARNING }),
       },
-      agent_token,
+      agent.token,
       201
     );
   } catch (error) {
     if (error instanceof CommentNotFoundError) {
-      return errorResponse('COMMENT_NOT_FOUND', error.message, agent_token, 404);
+      return errorResponse('COMMENT_NOT_FOUND', error.message, null, 404);
     }
     if (error instanceof ServiceError) {
-      return errorResponse(error.code, error.message, agent_token, error.statusCode);
+      return errorResponse(error.code, error.message, null, error.statusCode);
     }
     console.error('Error creating reply:', error);
     return errorResponse(
