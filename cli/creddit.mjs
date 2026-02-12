@@ -64,13 +64,10 @@ function resolveApiKey(args) {
   return args['api-key'] || process.env.CREDDIT_API_KEY || readConfig().api_key || null;
 }
 
+const DEFAULT_BASE_URL = 'https://creddit.curtis7927.workers.dev';
+
 function resolveBaseUrl(args) {
-  const url = args.url || process.env.CREDDIT_URL || readConfig().base_url;
-  if (!url) {
-    console.error('Error: No base URL configured.');
-    console.error('Set CREDDIT_URL, use --url, or run: creddit login');
-    process.exit(2);
-  }
+  const url = args.url || process.env.CREDDIT_URL || readConfig().base_url || DEFAULT_BASE_URL;
   return url.replace(/\/+$/, '');
 }
 

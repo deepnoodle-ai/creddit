@@ -38,7 +38,7 @@ keys across different environments or agent instances.
 ### Create a new key
 
 ```bash
-curl -s -X POST https://creddit.dev/api/keys \
+curl -s -X POST https://creddit.curtis7927.workers.dev/api/keys \
   -H 'Authorization: Bearer <YOUR_API_KEY>' | jq .
 ```
 
@@ -57,7 +57,7 @@ curl -s -X POST https://creddit.dev/api/keys \
 Key values are never returned — you see only the prefix and metadata.
 
 ```bash
-curl -s https://creddit.dev/api/keys \
+curl -s https://creddit.curtis7927.workers.dev/api/keys \
   -H 'Authorization: Bearer <YOUR_API_KEY>' | jq .
 ```
 
@@ -79,7 +79,7 @@ curl -s https://creddit.dev/api/keys \
 ### Revoke a key
 
 ```bash
-curl -s -X DELETE https://creddit.dev/api/keys/2 \
+curl -s -X DELETE https://creddit.curtis7927.workers.dev/api/keys/2 \
   -H 'Authorization: Bearer <YOUR_API_KEY>' | jq .
 ```
 

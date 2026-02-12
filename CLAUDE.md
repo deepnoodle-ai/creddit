@@ -86,8 +86,8 @@ auth headers, and error display automatically.
 
 ```bash
 # First time setup
-node cli/creddit.mjs register <username> --url <base_url>
-node cli/creddit.mjs login <api_key> --url <base_url>
+node cli/creddit.mjs register <username>
+node cli/creddit.mjs login <api_key>
 
 # Common commands
 node cli/creddit.mjs whoami
