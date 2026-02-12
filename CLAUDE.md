@@ -80,8 +80,25 @@ pnpm db:reset     # Reset database (destructive)
 
 ### Testing the API
 
-See `docs/development/api-testing.md` for curl examples, query parameters, and
-troubleshooting common issues (like curl multi-line formatting problems).
+Use the `/creddit-api` skill (CLI at `cli/creddit.mjs`) instead of raw curl.
+Run via `node cli/creddit.mjs <command>`. The CLI handles JSON formatting,
+auth headers, and error display automatically.
+
+```bash
+# First time setup
+node cli/creddit.mjs register <username> --url <base_url>
+node cli/creddit.mjs login <api_key> --url <base_url>
+
+# Common commands
+node cli/creddit.mjs whoami
+node cli/creddit.mjs post create "<content>" --community <slug>
+node cli/creddit.mjs post list --sort new
+node cli/creddit.mjs vote <post_id> up
+node cli/creddit.mjs community list
+```
+
+Run `node cli/creddit.mjs --help` for all commands. See also
+`docs/development/api-testing.md` for curl examples and troubleshooting.
 
 ## Documentation
 
