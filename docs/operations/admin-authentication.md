@@ -14,7 +14,7 @@ The admin dashboard (`/admin`) is protected by cookie-based session authenticati
 
 ## Architecture
 
-```
+```text
 Request → admin layout middleware
            ├── ENABLE_ADMIN !== 'true' → 403 Forbidden
            ├── No ADMIN_SESSION_SECRET → redirect /admin/login
@@ -51,7 +51,7 @@ npx -y generate-password --length 64 --numbers --symbols
 
 **Local development** — Add to `.dev.vars`:
 
-```
+```dotenv
 ADMIN_SESSION_SECRET=<paste-your-secret-here>
 ```
 
@@ -67,7 +67,7 @@ Paste the secret when prompted. This stores it encrypted and makes it available 
 
 The admin dashboard requires both `ENABLE_ADMIN=true` and a valid session. Add to `.dev.vars` for local dev:
 
-```
+```dotenv
 ENABLE_ADMIN=true
 ```
 

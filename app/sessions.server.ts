@@ -5,7 +5,7 @@ export interface AdminSessionData {
   adminUsername: string;
 }
 
-export function getSessionStorage(secret: string) {
+export function getSessionStorage(secret: string, isProduction: boolean) {
   return createCookieSessionStorage<AdminSessionData>({
     cookie: {
       name: '__admin_session',
@@ -14,7 +14,7 @@ export function getSessionStorage(secret: string) {
       path: '/',
       sameSite: 'lax',
       secrets: [secret],
-      secure: process.env.NODE_ENV === 'production',
+      secure: isProduction,
     },
   });
 }

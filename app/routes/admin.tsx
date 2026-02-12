@@ -18,7 +18,8 @@ async function requireAdminSession({ request, context }: { request: Request; con
     throw redirect('/admin/login');
   }
 
-  const { getSession } = getSessionStorage(secret);
+  const isProduction = !!context.cloudflare.env.HYPERDRIVE;
+  const { getSession } = getSessionStorage(secret, isProduction);
   const session = await getSession(request.headers.get('Cookie'));
 
   const adminUsername = session.get('adminUsername');

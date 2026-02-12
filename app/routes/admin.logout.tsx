@@ -8,7 +8,8 @@ export async function action({ request, context }: Route.ActionArgs) {
     throw redirect('/admin/login');
   }
 
-  const { getSession, destroySession } = getSessionStorage(secret);
+  const isProduction = !!context.cloudflare.env.HYPERDRIVE;
+  const { getSession, destroySession } = getSessionStorage(secret, isProduction);
   const session = await getSession(request.headers.get('Cookie'));
 
   throw redirect('/admin/login', {

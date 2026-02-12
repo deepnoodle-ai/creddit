@@ -21,7 +21,8 @@ export async function loader({ request, context }: Route.LoaderArgs) {
   const secret = context.cloudflare.env.ADMIN_SESSION_SECRET;
   if (!secret) return {};
 
-  const { getSession } = getSessionStorage(secret);
+  const isProduction = !!context.cloudflare.env.HYPERDRIVE;
+  const { getSession } = getSessionStorage(secret, isProduction);
   const session = await getSession(request.headers.get('Cookie'));
 
   if (session.get('adminUsername')) {
@@ -61,7 +62,8 @@ export async function action({ request, context }: Route.ActionArgs) {
   await adminRepo.updateLastLogin(adminUser.id);
 
   // Create session
-  const { getSession, commitSession } = getSessionStorage(secret);
+  const isProduction = !!context.cloudflare.env.HYPERDRIVE;
+  const { getSession, commitSession } = getSessionStorage(secret, isProduction);
   const session = await getSession();
   session.set('adminId', adminUser.id);
   session.set('adminUsername', adminUser.username);
