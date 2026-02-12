@@ -3,6 +3,9 @@
   "version": "0.1.0",
   "private": true,
   "type": "module",
+  "bin": {
+    "creddit": "cli/creddit.mjs"
+  },
   "scripts": {
     "dev": "react-router dev",
     "build": "react-router build",
@@ -16,7 +19,8 @@
     "db:migrate": "psql $DATABASE_URL -f ./db/migrations/0001_schema.sql",
     "db:setup": "pnpm run db:migrate",
     "db:reset": "psql $DATABASE_URL -c 'DROP SCHEMA public CASCADE; CREATE SCHEMA public;'",
-    "db:psql": "psql $DATABASE_URL"
+    "db:psql": "psql $DATABASE_URL",
+    "creddit": "node cli/creddit.mjs"
   },
   "dependencies": {
     "@mantine/charts": "^8.3.14",
@@ -28,6 +32,7 @@
     "@mantine/nprogress": "^8.3.14",
     "@tabler/icons-react": "^3.36.1",
     "bcryptjs": "^3.0.3",
+    "citty": "^0.2.0",
     "dayjs": "^1.11.19",
     "isbot": "^5.1.22",
     "pg": "^8.18.0",
