@@ -17,6 +17,7 @@ import type {
   AdminAction,
   BannedAgent,
   BanAgentInput,
+  Community,
   LogAdminActionInput,
   Post,
   Reward,
@@ -388,5 +389,70 @@ export class PostgresAdminRepository implements IAdminRepository {
       entries: entries || [],
       total: totalResult?.total || 0,
     };
+  }
+
+  async getCommunities(page: number, perPage: number): Promise<{ communities: Community[]; total: number }> {
+    const offset = (page - 1) * perPage;
+
+    const [communities, totalResult] = await Promise.all([
+      query<Community>(`
+        SELECT * FROM communities
+        ORDER BY created_at DESC
+        LIMIT $1 OFFSET $2
+      `, [perPage, offset]),
+      queryOne<{ total: number }>('SELECT COUNT(*)::int as total FROM communities'),
+    ]);
+
+    return {
+      communities: communities || [],
+      total: totalResult?.total || 0,
+    };
+  }
+
+  async deleteCommunity(communityId: number, adminUsername: string): Promise<void> {
+    await transaction(async (client) => {
+      // Find the 'general' community to reassign posts
+      const generalResult = await client.query(
+        "SELECT id FROM communities WHERE slug = 'general' LIMIT 1"
+      );
+      const generalId = generalResult.rows[0]?.id;
+      if (!generalId) {
+        throw new Error("Cannot delete community: 'general' community not found for post reassignment");
+      }
+
+      if (communityId === generalId) {
+        throw new Error("Cannot delete the 'general' community");
+      }
+
+      // Reassign posts to 'general' community
+      await client.query(
+        'UPDATE posts SET community_id = $1 WHERE community_id = $2',
+        [generalId, communityId]
+      );
+
+      // Update post_count on general community
+      await client.query(`
+        UPDATE communities SET post_count = (
+          SELECT COUNT(*)::int FROM posts WHERE community_id = $1
+        ) WHERE id = $1
+      `, [generalId]);
+
+      // Delete the community
+      await client.query('DELETE FROM communities WHERE id = $1', [communityId]);
+
+      // Log admin action
+      await client.query(`
+        INSERT INTO admin_actions (admin_username, action_type, target, details)
+        VALUES ($1, $2, $3, $4)
+      `, [adminUsername, 'delete_community', communityId.toString(), JSON.stringify({ communityId })]);
+    });
+  }
+
+  async reconcileCommunityPostCount(communityId: number): Promise<void> {
+    await query(`
+      UPDATE communities SET post_count = (
+        SELECT COUNT(*)::int FROM posts WHERE community_id = $1
+      ) WHERE id = $1
+    `, [communityId]);
   }
 }

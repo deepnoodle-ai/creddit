@@ -22,6 +22,7 @@ import type {
   IRewardRepository,
   ICommentRepository,
   IAdminRepository,
+  ICommunityRepository,
 } from './repositories';
 
 import {
@@ -31,6 +32,7 @@ import {
   PostgresCommentRepository,
   PostgresRewardRepository,
   PostgresAdminRepository,
+  PostgresCommunityRepository,
 } from './adapters/postgres';
 
 /**
@@ -44,6 +46,7 @@ export interface Repositories {
   rewards: IRewardRepository;
   comments: ICommentRepository;
   admin: IAdminRepository;
+  communities: ICommunityRepository;
 }
 
 /**
@@ -70,6 +73,7 @@ export function createRepositories(type: DatabaseType): Repositories {
         rewards: new PostgresRewardRepository(),
         comments: new PostgresCommentRepository(),
         admin: new PostgresAdminRepository(),
+        communities: new PostgresCommunityRepository(),
       };
 
     case 'd1':

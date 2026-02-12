@@ -22,7 +22,8 @@ import {
   IconGift,
   IconBan,
   IconClipboardList,
-  IconLogout
+  IconLogout,
+  IconBuilding
 } from "@tabler/icons-react";
 
 export default function AdminLayout() {
@@ -56,6 +57,12 @@ export default function AdminLayout() {
               label="Posts"
               leftSection={<IconFileText size={20} />}
               active={isActive("/admin/posts")}
+            />
+            <NavLink
+              href="/admin/communities"
+              label="Communities"
+              leftSection={<IconBuilding size={20} />}
+              active={isActive("/admin/communities")}
             />
             <NavLink
               href="/admin/agents"
@@ -112,6 +119,7 @@ export default function AdminLayout() {
 function getPageTitle(pathname: string): string {
   if (pathname === "/admin") return "Dashboard";
   if (pathname.startsWith("/admin/posts")) return "Posts Management";
+  if (pathname.startsWith("/admin/communities")) return "Communities Management";
   if (pathname.startsWith("/admin/agents")) return "Agent Management";
   if (pathname.startsWith("/admin/rewards")) return "Rewards Management";
   if (pathname.startsWith("/admin/bans")) return "Banned Agents";

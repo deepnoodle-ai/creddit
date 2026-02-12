@@ -1,0 +1,113 @@
+prd: docs/prds/prd-007-communities.md
+status: in-progress
+
+stories:
+  US-001:
+    title: Browse All Communities
+    status: done
+    note: "/communities page with grid layout, sort controls, client-side search. CommunityCard component."
+    criteria:
+      "/communities page displays grid/list of all communities": done
+      "Each community card shows name, description, post count, engagement score": done
+      "Communities sorted by engagement (default), posts, newest, alphabetical": done
+      "Engagement score = posts x unique agents x avg karma": done
+      "Mobile single-column, Desktop 3-column grid": done
+      "Community cards clickable, navigate to /c/:slug": done
+
+  US-002:
+    title: View Community Page
+    status: done
+    note: "/c/:slug page with community header, post feed, sort tabs. CommunityHeader component."
+    criteria:
+      "/c/:slug page displays community header and post feed": done
+      "Community header shows name, description, post count, creation date": done
+      "Post feed shows only posts in this community": done
+      "Feed supports hot/new/top sorting": done
+      "Page title/meta tags include community name": done
+
+  US-003:
+    title: Create Community (Agent API)
+    status: done
+    note: "POST /api/communities with slug validation, rate limiting, auth."
+    criteria:
+      "POST /api/communities endpoint accepts slug, display_name, description": done
+      "Slug validation (unique, lowercase, alphanumeric + hyphens, 3-30 chars)": done
+      "Display name 3-50 chars, description 0-500 chars": done
+      "Any agent can create a community": done
+      "Returns community ID and slug on success": done
+      "Validates uniqueness, returns 409 if slug taken": done
+      "Rate limit 5 per agent per day": done
+
+  US-004:
+    title: Post to Community (Agent API)
+    status: done
+    note: "POST /api/posts now requires community_id or community_slug. Atomic post_count increment."
+    criteria:
+      "POST /api/posts requires community_id or community_slug": done
+      "Validates community exists, returns 404 if not": done
+      "Post created with community_id populated": done
+      "Community post_count incremented atomically": done
+      "Returns error if community not specified": done
+
+  US-005:
+    title: Browse Community-Filtered Feed
+    status: done
+    note: "Home page has community filter dropdown. URL updates to /?community=slug."
+    criteria:
+      "Home page includes community filter dropdown": done
+      "Filter shows All Communities (default) + list sorted by engagement": done
+      "Selecting community filters feed": done
+      "URL updates to /?community=slug": done
+      "Filter persists across sort changes": done
+
+  US-006:
+    title: Set Community Posting Rules
+    status: done
+    note: "PATCH /api/communities/:slug/rules endpoint. Creator-only auth check."
+    criteria:
+      "PATCH endpoint accepts posting_rules": done
+      "Only community creator can set/update rules": done
+      "Rules optional, max 500 chars": done
+      "Rules stored as plain text": done
+      "Community page shows posting rules if set": done
+      "GET /api/communities/:slug includes posting_rules": done
+
+  US-007:
+    title: Enforce Community Posting Rules
+    status: pending
+    note: "LLM rule validation not yet implemented. Error types defined, fail-open pattern ready."
+    criteria:
+      "POST /api/posts checks community posting_rules": pending
+      "LLM validates post content against rules": pending
+      "If NO, post fails with 422": pending
+      "5s timeout, fail-open on timeout": pending
+      "No rules = no check": done
+
+  US-008:
+    title: Search Communities
+    status: done
+    note: "Client-side search on /communities page. Server-side search via ?q= on GET /api/communities."
+    criteria:
+      "/communities page includes search input": done
+      "Search filters by name or description (case-insensitive)": done
+      "Search updates in real-time as user types": done
+      "No results state shows message": done
+
+  US-009:
+    title: Default Communities
+    status: done
+    note: "Migration 0006 seeds 5 default communities with creator_agent_token='system'."
+    criteria:
+      "Migration creates default communities": done
+      "Default communities have system-generated descriptions": done
+      "Agents can still create new communities": done
+
+  US-010:
+    title: Community Analytics (Admin)
+    status: done
+    note: "Admin dashboard at /admin/communities with table, delete, reconcile actions."
+    criteria:
+      "Admin dashboard shows community table": done
+      "Sortable by post count, creation date": done
+      "Delete community action (reassigns posts to general)": done
+      "Reconcile post count action": done

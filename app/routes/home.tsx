@@ -1,7 +1,8 @@
-import { Box, Group, Stack, Text, Title, UnstyledButton } from "@mantine/core";
-import { IconBolt, IconFlame, IconClock, IconTrendingUp } from "@tabler/icons-react";
-import { useLoaderData, useSearchParams, Link } from "react-router";
+import { Box, Group, Stack, Text, Title, UnstyledButton, Select } from "@mantine/core";
+import { IconBolt, IconFlame, IconClock, IconTrendingUp, IconUsers } from "@tabler/icons-react";
+import { useLoaderData, useSearchParams, Link, useNavigate } from "react-router";
 import type { Route } from "./+types/home";
+import type { Community } from "../../db/schema";
 import { PostCard } from "../components/PostCard";
 import { PostCardSkeleton } from "../components/PostCardSkeleton";
 
@@ -17,19 +18,56 @@ export async function loader({ request, context }: Route.LoaderArgs) {
   const sort: "hot" | "new" | "top" = rawSort && ["hot", "new", "top"].includes(rawSort)
     ? (rawSort as "hot" | "new" | "top")
     : "hot";
+  const communitySlug = url.searchParams.get("community") || null;
   const limit = 50;
+
+  // Load communities list for the filter
+  const { communities } = await context.services.communities.getCommunities("engagement", 100, 0);
+
+  // Resolve communityId from slug if filtering
+  let communityId: number | undefined;
+  if (communitySlug) {
+    const matched = communities.find((c: Community) => c.slug === communitySlug);
+    if (matched) {
+      communityId = matched.id;
+    }
+  }
 
   const posts = await context.services.posts.getPostFeed({
     sort,
     limit,
+    communityId,
   });
 
-  return { posts, sort };
+  return { posts, sort, communities, communitySlug };
 }
 
 export default function Home() {
-  const { posts, sort } = useLoaderData<typeof loader>();
+  const { posts, sort, communities, communitySlug } = useLoaderData<typeof loader>();
   const [searchParams] = useSearchParams();
+  const navigate = useNavigate();
+
+  /** Build a link preserving the current sort + community params */
+  function buildSortLink(sortValue: string): string {
+    const params = new URLSearchParams();
+    if (sortValue !== "hot") params.set("sort", sortValue);
+    if (communitySlug) params.set("community", communitySlug);
+    const qs = params.toString();
+    return qs ? `/?${qs}` : "/";
+  }
+
+  function handleCommunityChange(value: string | null) {
+    const params = new URLSearchParams();
+    if (sort !== "hot") params.set("sort", sort);
+    if (value) params.set("community", value);
+    const qs = params.toString();
+    navigate(qs ? `/?${qs}` : "/");
+  }
+
+  const communitySelectData = communities.map((c: Community) => ({
+    value: c.slug,
+    label: c.display_name,
+  }));
 
   return (
     <Box px={{ base: "var(--space-4)", sm: "var(--space-6)" }} py="var(--space-6)" maw={1280} mx="auto">
@@ -56,37 +94,65 @@ export default function Home() {
           </Text>
         </Box>
 
-        {/* Sort tabs */}
-        <Group gap="xs" role="tablist" aria-label="Sort feed">
-          {sortOptions.map((option) => {
-            const isActive = sort === option.value;
-            return (
-              <UnstyledButton
-                key={option.value}
-                component={Link}
-                to={option.value === "hot" ? "/" : `/?sort=${option.value}`}
-                role="tab"
-                aria-selected={isActive}
-                style={{
-                  display: "flex",
-                  alignItems: "center",
-                  gap: "var(--space-2)",
-                  padding: "var(--space-2) var(--space-4)",
-                  borderRadius: "var(--radius-md)",
-                  fontWeight: 600,
+        {/* Sort tabs + community filter */}
+        <Group gap="sm" justify="space-between" wrap="wrap">
+          <Group gap="xs" role="tablist" aria-label="Sort feed">
+            {sortOptions.map((option) => {
+              const isActive = sort === option.value;
+              return (
+                <UnstyledButton
+                  key={option.value}
+                  component={Link}
+                  to={buildSortLink(option.value)}
+                  role="tab"
+                  aria-selected={isActive}
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    gap: "var(--space-2)",
+                    padding: "var(--space-2) var(--space-4)",
+                    borderRadius: "var(--radius-md)",
+                    fontWeight: 600,
+                    fontSize: "var(--text-sm)",
+                    color: isActive ? "var(--bg-primary)" : "var(--text-secondary)",
+                    background: isActive ? "var(--karma-glow)" : "var(--bg-card)",
+                    border: `1px solid ${isActive ? "var(--karma-glow)" : "var(--border-subtle)"}`,
+                    boxShadow: isActive ? "0 0 16px var(--karma-shadow)" : "none",
+                    transition: "all 0.2s ease",
+                  }}
+                >
+                  <option.icon size={16} aria-hidden />
+                  {option.label}
+                </UnstyledButton>
+              );
+            })}
+          </Group>
+
+          {communities.length > 0 && (
+            <Select
+              placeholder="All Communities"
+              data={communitySelectData}
+              value={communitySlug}
+              onChange={handleCommunityChange}
+              clearable
+              leftSection={<IconUsers size={16} style={{ color: "var(--text-tertiary)" }} />}
+              size="sm"
+              styles={{
+                input: {
+                  background: "var(--bg-card)",
+                  border: "1px solid var(--border-subtle)",
+                  color: "var(--text-primary)",
                   fontSize: "var(--text-sm)",
-                  color: isActive ? "var(--bg-primary)" : "var(--text-secondary)",
-                  background: isActive ? "var(--karma-glow)" : "var(--bg-card)",
-                  border: `1px solid ${isActive ? "var(--karma-glow)" : "var(--border-subtle)"}`,
-                  boxShadow: isActive ? "0 0 16px var(--karma-shadow)" : "none",
-                  transition: "all 0.2s ease",
-                }}
-              >
-                <option.icon size={16} aria-hidden />
-                {option.label}
-              </UnstyledButton>
-            );
-          })}
+                },
+                dropdown: {
+                  background: "var(--bg-card)",
+                  border: "1px solid var(--border-subtle)",
+                },
+              }}
+              style={{ minWidth: 180 }}
+              aria-label="Filter by community"
+            />
+          )}
         </Group>
 
         {/* Post feed — bento grid */}
@@ -104,6 +170,8 @@ export default function Home() {
                 voteCount={post.vote_count}
                 commentCount={post.comment_count}
                 createdAt={post.created_at}
+                communitySlug={post.community_slug}
+                communityName={post.community_name}
                 className={getBentoSize(idx)}
               />
             ))}

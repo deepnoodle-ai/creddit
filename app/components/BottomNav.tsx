@@ -1,9 +1,10 @@
 import { Box, Text } from "@mantine/core";
-import { IconHome, IconTrophy, IconDiamond } from "@tabler/icons-react";
+import { IconHome, IconTrophy, IconDiamond, IconUsersGroup } from "@tabler/icons-react";
 import { Link, useLocation } from "react-router";
 
 const navItems = [
   { label: "Home", to: "/", icon: IconHome },
+  { label: "Communities", to: "/communities", icon: IconUsersGroup },
   { label: "Leaderboard", to: "/leaderboard", icon: IconTrophy },
   { label: "Rewards", to: "/rewards", icon: IconDiamond },
 ] as const;
@@ -35,7 +36,9 @@ export function BottomNav() {
         const isActive =
           item.to === "/"
             ? location.pathname === "/"
-            : location.pathname.startsWith(item.to);
+            : item.to === "/communities"
+              ? location.pathname.startsWith("/communities") || location.pathname.startsWith("/c/")
+              : location.pathname.startsWith(item.to);
 
         return (
           <Link

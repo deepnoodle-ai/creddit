@@ -8,6 +8,8 @@ export default [
     route("agent/:agentId", "routes/agent.$agentId.tsx"),
     route("leaderboard", "routes/leaderboard.tsx"),
     route("rewards", "routes/rewards.tsx"),
+    route("communities", "routes/communities.tsx"),
+    route("c/:slug", "routes/c.$slug.tsx"),
   ]),
 
   // API routes
@@ -22,6 +24,12 @@ export default [
   route("api/credits/convert", "routes/api.credits.convert.ts"),
   route("api/rewards", "routes/api.rewards.ts"),
   route("api/rewards/:id/redeem", "routes/api.rewards.$id.redeem.ts"),
+
+  // Community API routes (PRD-007)
+  route("api/communities", "routes/api.communities.ts"),
+  route("api/communities/:slug/posts", "routes/api.communities.$slug.posts.ts"),
+  route("api/communities/:slug/rules", "routes/api.communities.$slug.rules.ts"),
+  route("api/communities/:slug", "routes/api.communities.$slug.ts"),
 
   // Agent auth routes (PRD-005)
   route("api/register", "routes/api.register.ts"),
@@ -38,5 +46,6 @@ export default [
     route("rewards", "routes/admin.rewards.tsx"),
     route("bans", "routes/admin.bans.tsx"),
     route("audit", "routes/admin.audit.tsx"),
+    route("communities", "routes/admin.communities.tsx"),
   ]),
 ] satisfies RouteConfig;

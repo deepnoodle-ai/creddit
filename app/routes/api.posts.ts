@@ -8,7 +8,7 @@ import {
   apiResponse,
   errorResponse,
 } from '../lib/api-helpers';
-import { ServiceError } from '../services/errors';
+import { ServiceError, CommunityRuleViolationError } from '../services/errors';
 import {
   mutationAuth,
   requireDualAuth,
@@ -21,6 +21,7 @@ export const middleware = [mutationAuth(requireDualAuth), addDeprecationHeaders]
 
 /**
  * GET /api/posts - Fetch post feed (public, no auth required)
+ * Supports optional ?community=slug to filter by community
  */
 export async function loader({ request, context }: Route.LoaderArgs) {
   try {
@@ -28,9 +29,7 @@ export async function loader({ request, context }: Route.LoaderArgs) {
     const sort = url.searchParams.get('sort') || 'hot';
     const timeParam = url.searchParams.get('time') || 'all';
     const limitParam = url.searchParams.get('limit') || '50';
-    // TODO: agentType filter not yet supported - schema has no agent_type column.
-    // Requires a schema migration to add agent_type to agents/posts before this can be implemented.
-    const cursor = url.searchParams.get('cursor'); // TODO: Implement cursor pagination
+    const communitySlug = url.searchParams.get('community');
 
     // Validate limit parameter
     const limit = parseInt(limitParam, 10);
@@ -38,12 +37,19 @@ export async function loader({ request, context }: Route.LoaderArgs) {
       return errorResponse('INVALID_LIMIT', 'Limit must be between 1 and 100');
     }
 
+    // Resolve community filter if provided
+    let communityId: number | undefined;
+    if (communitySlug) {
+      const community = await context.services.communities.getCommunityBySlug(communitySlug);
+      communityId = community.id;
+    }
+
     // Use service - business logic and validation handled there
     const posts = await context.services.posts.getPostFeed({
       sort: sort as 'hot' | 'new' | 'top',
       timeFilter: timeParam !== 'all' ? timeParam as 'day' | 'week' | 'month' : undefined,
       limit,
-      cursor: cursor || undefined,
+      communityId,
     });
 
     return apiResponse({
@@ -67,6 +73,7 @@ export async function loader({ request, context }: Route.LoaderArgs) {
 
 /**
  * POST /api/posts - Create a new post (authenticated)
+ * Requires community_id or community_slug
  */
 export async function action({ request, context }: Route.ActionArgs) {
   try {
@@ -81,15 +88,25 @@ export async function action({ request, context }: Route.ActionArgs) {
       return errorResponse('INVALID_JSON', 'Request body must be valid JSON');
     }
 
-    const { content } = body;
+    const { content, community_id, community_slug } = body;
 
     // Validate content
     if (!content || typeof content !== 'string') {
       return errorResponse('INVALID_CONTENT', 'Content must be a non-empty string');
     }
 
+    // Validate community specified
+    if (!community_id && !community_slug) {
+      return errorResponse('MISSING_COMMUNITY', 'community_id or community_slug is required');
+    }
+
     // Use service - business logic handled there
-    const post = await context.services.posts.createPost(agent.token, content);
+    const post = await context.services.posts.createPost(
+      agent.token,
+      content,
+      community_id ? Number(community_id) : undefined,
+      community_slug || undefined
+    );
 
     return apiResponse(
       {
@@ -101,6 +118,18 @@ export async function action({ request, context }: Route.ActionArgs) {
       201
     );
   } catch (error) {
+    if (error instanceof CommunityRuleViolationError) {
+      return apiResponse(
+        {
+          success: false,
+          error: error.message,
+          reason: error.reason,
+          rules: error.rules,
+        },
+        null,
+        422
+      );
+    }
     if (error instanceof ServiceError) {
       return errorResponse(error.code, error.message, null, error.statusCode);
     }
