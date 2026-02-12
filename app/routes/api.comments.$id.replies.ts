@@ -9,11 +9,13 @@ import {
   validateAgentToken,
   checkRateLimitOrError,
 } from '../lib/api-helpers';
+import { ServiceError, CommentNotFoundError } from '../services/errors';
 
 /**
  * POST /api/comments/:id/replies - Reply to a comment
  */
 export async function action({ request, params, context }: Route.ActionArgs) {
+  let agent_token: string | undefined;
   try {
     // Parse comment ID
     const commentId = parseInt(params.id || '', 10);
@@ -21,14 +23,8 @@ export async function action({ request, params, context }: Route.ActionArgs) {
       return errorResponse('INVALID_COMMENT_ID', 'Comment ID must be a valid number', null, 404);
     }
 
-    // Use repository interface
-    const agentRepo = context.repositories.agents;
-    const commentRepo = context.repositories.comments;
-
     // Check if parent comment exists
-    const { queryOne } = await import('../../db/connection');
-    const parentComment = await queryOne('SELECT * FROM comments WHERE id = $1', [commentId]);
-
+    const parentComment = await context.repositories.comments.getById(commentId);
     if (!parentComment) {
       return errorResponse('COMMENT_NOT_FOUND', `Comment ${commentId} does not exist`, null, 404);
     }
@@ -41,14 +37,15 @@ export async function action({ request, params, context }: Route.ActionArgs) {
       return errorResponse('INVALID_JSON', 'Request body must be valid JSON');
     }
 
-    const { agent_token, content } = body;
+    agent_token = body.agent_token;
+    const { content } = body;
 
     // Validate agent_token
     const tokenError = validateAgentToken(agent_token);
     if (tokenError) return tokenError;
 
-    // Check rate limit
-    const rateLimitError = checkRateLimitOrError(agent_token);
+    // Check rate limit (agent_token is validated above)
+    const rateLimitError = checkRateLimitOrError(agent_token!);
     if (rateLimitError) return rateLimitError;
 
     // Validate content
@@ -56,27 +53,13 @@ export async function action({ request, params, context }: Route.ActionArgs) {
       return errorResponse('INVALID_CONTENT', 'Content must be a non-empty string');
     }
 
-    if (content.length < 1 || content.length > 2000) {
-      return errorResponse('INVALID_CONTENT', 'Content must be 1-2,000 characters');
-    }
-
-    // Ensure agent exists
-    await agentRepo.getOrCreate(agent_token);
-
-    // Create reply comment
-    const replyId = await commentRepo.create({
-      post_id: (parentComment as any).post_id,
-      parent_comment_id: commentId,
-      agent_token,
+    // Use service - business logic handled there (agent_token validated above)
+    const comment = await context.services.comments.createComment(
+      parentComment.post_id,
+      agent_token!,
       content,
-    });
-
-    // Fetch the created comment
-    const comment = await queryOne('SELECT * FROM comments WHERE id = $1', [replyId]);
-
-    if (!comment) {
-      return errorResponse('INTERNAL_SERVER_ERROR', 'Failed to retrieve created comment', agent_token, 500);
-    }
+      commentId
+    );
 
     return apiResponse(
       {
@@ -87,6 +70,12 @@ export async function action({ request, params, context }: Route.ActionArgs) {
       201
     );
   } catch (error) {
+    if (error instanceof CommentNotFoundError) {
+      return errorResponse('COMMENT_NOT_FOUND', error.message, agent_token, 404);
+    }
+    if (error instanceof ServiceError) {
+      return errorResponse(error.code, error.message, agent_token, error.statusCode);
+    }
     console.error('Error creating reply:', error);
     return errorResponse(
       'INTERNAL_SERVER_ERROR',
