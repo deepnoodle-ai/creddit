@@ -70,12 +70,12 @@ pnpm typecheck    # TypeScript checks
 pnpm deploy       # Deploy to Cloudflare Workers
 pnpm docker:up    # Start local PostgreSQL
 pnpm docker:down  # Stop PostgreSQL
-pnpm db:setup     # Migrate + seed (full setup)
+pnpm db:setup     # Run migrations (idempotent)
 pnpm db:reset     # Reset database (destructive)
 ```
 
 **Note:** `.dev.vars` sets `DATABASE_URL` for wrangler dev. DB scripts
-(`db:migrate`, `db:seed`, etc.) use the shell `DATABASE_URL` instead.
+(`db:migrate`, etc.) use the shell `DATABASE_URL` instead.
 
 ### Testing the API
 

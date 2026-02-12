@@ -125,7 +125,7 @@ export interface Reward {
   credit_cost: number;
   reward_type: RewardType;
   reward_data: string | null; // JSON string for type-specific config
-  active: number; // 0 or 1 (boolean in SQLite)
+  active: boolean;
   created_at: string; // ISO 8601 timestamp
 }
 

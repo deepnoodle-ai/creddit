@@ -1,7 +1,7 @@
 /**
  * Database Module Exports
  *
- * Central export file for all database functionality using clean architecture.
+ * Central export file for all database functionality.
  */
 
 // Schema types
@@ -64,15 +64,5 @@ export type {
 } from './repositories';
 
 // Dependency injection container
-export type { Repositories, DatabaseType } from './container';
-export { createRepositories, getDatabaseType } from './container';
-
-// Database seeding
-export {
-  seedAll,
-  seedRewards,
-  seedDemoAgents,
-  seedDemoPosts,
-  clearDemoData,
-  resetDatabase,
-} from './seed';
+export type { Repositories } from './container';
+export { createRepositories } from './container';
