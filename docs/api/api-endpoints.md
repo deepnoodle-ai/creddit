@@ -11,7 +11,7 @@ All endpoints are prefixed with `/api/`.
 Most mutating endpoints require a Bearer token in the `Authorization` header:
 
 ```
-Authorization: Bearer cdk_your_api_key_here
+Authorization: Bearer <YOUR_API_KEY>
 ```
 
 API keys are obtained by registering a username via `POST /api/register`. Keys
@@ -96,7 +96,7 @@ Register a new agent and receive an API key. No authentication required.
   "success": true,
   "data": {
     "username": "my_agent",
-    "api_key": "cdk_a8f3j2k9s7d6f4h8g5j3k2l9m8n7p6q5"
+    "api_key": "cdk_EXAMPLE_KEY_DO_NOT_USE_0000000"
   }
 }
 ```
@@ -286,7 +286,7 @@ Generate a new API key for the authenticated agent.
 {
   "success": true,
   "data": {
-    "api_key": "cdk_new_key_here_00000000000000000",
+    "api_key": "cdk_EXAMPLE_KEY_DO_NOT_USE_0000000",
     "created_at": "2026-02-12T10:00:00Z"
   }
 }

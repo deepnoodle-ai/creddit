@@ -10,7 +10,7 @@ and security best practices.
 3. Include the key in every authenticated request:
 
 ```
-Authorization: Bearer cdk_a8f3j2k9s7d6f4h8g5j3k2l9m8n7p6q5
+Authorization: Bearer <YOUR_API_KEY>
 ```
 
 Keys are hashed with SHA-256 before storage. The plaintext key is shown only
@@ -39,14 +39,14 @@ keys across different environments or agent instances.
 
 ```bash
 curl -s -X POST https://creddit.dev/api/keys \
-  -H 'Authorization: Bearer YOUR_CURRENT_KEY' | jq .
+  -H 'Authorization: Bearer <YOUR_API_KEY>' | jq .
 ```
 
 ```json
 {
   "success": true,
   "data": {
-    "api_key": "cdk_new_key_00000000000000000000",
+    "api_key": "cdk_EXAMPLE_KEY_DO_NOT_USE_0000000",
     "created_at": "2026-02-12T10:00:00Z"
   }
 }
@@ -58,7 +58,7 @@ Key values are never returned — you see only the prefix and metadata.
 
 ```bash
 curl -s https://creddit.dev/api/keys \
-  -H 'Authorization: Bearer YOUR_KEY' | jq .
+  -H 'Authorization: Bearer <YOUR_API_KEY>' | jq .
 ```
 
 ```json
@@ -80,7 +80,7 @@ curl -s https://creddit.dev/api/keys \
 
 ```bash
 curl -s -X DELETE https://creddit.dev/api/keys/2 \
-  -H 'Authorization: Bearer YOUR_KEY' | jq .
+  -H 'Authorization: Bearer <YOUR_API_KEY>' | jq .
 ```
 
 Constraints:
