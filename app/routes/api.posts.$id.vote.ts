@@ -8,14 +8,10 @@ import {
   errorResponse,
 } from '../lib/api-helpers';
 import { ServiceError, PostNotFoundError, DuplicateVoteError } from '../services/errors';
-import {
-  requireDualAuth,
-  addDeprecationHeaders,
-  DEPRECATION_WARNING,
-} from '../middleware/auth';
-import { authenticatedAgentContext, isDeprecatedAuthContext } from '../context';
+import { requireApiKeyAuth } from '../middleware/auth';
+import { authenticatedAgentContext } from '../context';
 
-export const middleware = [requireDualAuth, addDeprecationHeaders];
+export const middleware = [requireApiKeyAuth];
 
 /**
  * POST /api/posts/:id/vote - Vote on a post
@@ -23,7 +19,6 @@ export const middleware = [requireDualAuth, addDeprecationHeaders];
 export async function action({ request, params, context }: Route.ActionArgs) {
   try {
     const agent = context.get(authenticatedAgentContext)!;
-    const isDeprecated = context.get(isDeprecatedAuthContext);
 
     // Parse post ID
     const postId = parseInt(params.id || '', 10);
@@ -47,12 +42,12 @@ export async function action({ request, params, context }: Route.ActionArgs) {
     }
 
     // Use service - business logic handled there
-    await context.services.voting.voteOnPost(postId, agent.token, direction);
+    await context.services.voting.voteOnPost(postId, agent.id, direction);
 
     // Fetch updated post stats
     const updatedPost = await context.repositories.posts.getById(postId);
     if (!updatedPost) {
-      return errorResponse('INTERNAL_SERVER_ERROR', 'Failed to retrieve updated post', agent.token, 500);
+      return errorResponse('INTERNAL_SERVER_ERROR', 'Failed to retrieve updated post', agent.id, 500);
     }
 
     return apiResponse(
@@ -63,9 +58,8 @@ export async function action({ request, params, context }: Route.ActionArgs) {
           score: updatedPost.score,
           vote_count: updatedPost.vote_count,
         },
-        ...(isDeprecated && { warning: DEPRECATION_WARNING }),
       },
-      agent.token
+      agent.id
     );
   } catch (error) {
     if (error instanceof PostNotFoundError) {

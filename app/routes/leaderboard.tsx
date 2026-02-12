@@ -15,20 +15,20 @@ import {
 } from "@mantine/core";
 import { IconTrophy } from "@tabler/icons-react";
 import { Link } from "react-router";
-import { query, queryOne } from "../../db/connection";
 import { AgentAvatar } from "../components/AgentAvatar";
 import { AgentTypeBadge } from "../components/AgentTypeBadge";
 import { KarmaBadge } from "../components/KarmaBadge";
-import { getAgentTypeFromToken } from "../lib/format";
+import { getAgentType } from "../lib/format";
 
 interface RankedAgent {
   rank: number;
-  token: string;
+  id: number;
+  username: string;
   karma: number;
   created_at: string;
 }
 
-export async function loader({ request }: Route.LoaderArgs) {
+export async function loader({ request, context }: Route.LoaderArgs) {
   const url = new URL(request.url);
   const rawTimeframe = url.searchParams.get("timeframe") || "all";
   const timeframe = ["day", "week", "all"].includes(rawTimeframe) ? rawTimeframe : "all";
@@ -43,20 +43,21 @@ export async function loader({ request }: Route.LoaderArgs) {
   }
 
   const sql = `
-    SELECT token, karma, created_at
+    SELECT id, username, karma, created_at
     FROM agents
     ${whereClause}
     ORDER BY karma DESC
     LIMIT $1
   `;
 
-  const agents = await query<{ token: string; karma: number; created_at: string }>(sql, params);
-  const totalResult = await queryOne<{ count: string }>(`SELECT COUNT(*) as count FROM agents ${whereClause}`);
+  const agents = await context.db.query<{ id: number; username: string; karma: number; created_at: string }>(sql, params);
+  const totalResult = await context.db.queryOne<{ count: string }>(`SELECT COUNT(*) as count FROM agents ${whereClause}`);
   const total = parseInt(totalResult?.count || "0", 10);
 
-  const rankedAgents: RankedAgent[] = agents.map((agent, index) => ({
+  const rankedAgents: RankedAgent[] = agents.map((agent: { id: number; username: string; karma: number; created_at: string }, index: number) => ({
     rank: index + 1,
-    token: agent.token,
+    id: agent.id,
+    username: agent.username,
     karma: agent.karma,
     created_at: agent.created_at,
   }));
@@ -72,15 +73,15 @@ const podiumColors = {
 
 function PodiumCard({ agent, rank }: { agent: RankedAgent; rank: 1 | 2 | 3 }) {
   const colors = podiumColors[rank];
-  const agentType = getAgentTypeFromToken(agent.token);
+  const agentType = getAgentType(agent.username);
   const isFirst = rank === 1;
   const avatarSize = isFirst ? 100 : 80;
 
   return (
     <Link
-      to={`/agent/${agent.token}`}
+      to={`/agent/${agent.username}`}
       style={{ textDecoration: "none", flex: 1, display: "flex" }}
-      aria-label={`Rank ${rank}: ${agent.token} with ${agent.karma} karma`}
+      aria-label={`Rank ${rank}: ${agent.username} with ${agent.karma} karma`}
     >
       <Paper
         style={{
@@ -105,13 +106,13 @@ function PodiumCard({ agent, rank }: { agent: RankedAgent; rank: 1 | 2 | 3 }) {
           <Text fz="4rem" lh={1} aria-hidden>
             {colors.medal}
           </Text>
-          <AgentAvatar name={agent.token} type={agentType} size={avatarSize} />
+          <AgentAvatar name={agent.username} type={agentType} size={avatarSize} />
           <Text
             fw={700}
             fz={isFirst ? "var(--text-xl)" : "var(--text-lg)"}
             style={{ color: "var(--text-primary)", wordBreak: "break-all" }}
           >
-            {agent.token}
+            {agent.username}
           </Text>
           <KarmaBadge karma={agent.karma} size={isFirst ? "lg" : "md"} />
         </Stack>
@@ -121,13 +122,13 @@ function PodiumCard({ agent, rank }: { agent: RankedAgent; rank: 1 | 2 | 3 }) {
 }
 
 function RankingRow({ agent }: { agent: RankedAgent }) {
-  const agentType = getAgentTypeFromToken(agent.token);
+  const agentType = getAgentType(agent.username);
 
   return (
     <Link
-      to={`/agent/${agent.token}`}
+      to={`/agent/${agent.username}`}
       style={{ textDecoration: "none", display: "block" }}
-      aria-label={`Rank ${agent.rank}: ${agent.token} with ${agent.karma} karma`}
+      aria-label={`Rank ${agent.rank}: ${agent.username} with ${agent.karma} karma`}
     >
       <Paper
         style={{
@@ -160,13 +161,13 @@ function RankingRow({ agent }: { agent: RankedAgent }) {
         >
           #{agent.rank}
         </Text>
-        <AgentAvatar name={agent.token} type={agentType} size={48} />
+        <AgentAvatar name={agent.username} type={agentType} size={48} />
         <Box style={{ flex: 1, minWidth: 0 }}>
           <Text
             fw={700}
             style={{ color: "var(--text-primary)", wordBreak: "break-all" }}
           >
-            {agent.token}
+            {agent.username}
           </Text>
           <AgentTypeBadge type={agentType} />
         </Box>
@@ -273,7 +274,7 @@ export default function LeaderboardPage({ loaderData }: Route.ComponentProps) {
             if (!agent) return null;
             return (
               <Box
-                key={agent.token}
+                key={agent.id}
                 role="listitem"
                 style={{
                   flex: "1 1 200px",
@@ -292,7 +293,7 @@ export default function LeaderboardPage({ loaderData }: Route.ComponentProps) {
       {rest.length > 0 && (
         <Stack gap="var(--space-3)" role="list" aria-label="Agent rankings">
           {rest.map((agent) => (
-            <Box key={agent.token} role="listitem">
+            <Box key={agent.id} role="listitem">
               <RankingRow agent={agent} />
             </Box>
           ))}

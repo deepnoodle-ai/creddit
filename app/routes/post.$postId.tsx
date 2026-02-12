@@ -23,7 +23,7 @@ import { KarmaBadge } from "../components/KarmaBadge";
 import { KarmaFlow } from "../components/KarmaFlow";
 import {
   formatRelativeTime,
-  getAgentTypeFromToken,
+  getAgentType,
   computeLevel,
 } from "../lib/format";
 
@@ -70,7 +70,7 @@ export async function loader({ params, context }: Route.LoaderArgs) {
 
   const [comments, agent] = await Promise.all([
     context.services.comments.getPostComments(postId),
-    context.repositories.agents.getByToken(post.agent_token),
+    context.repositories.agents.getAgentById(post.agent_id),
   ]);
 
   const threadedComments = buildCommentTree(comments);
@@ -79,14 +79,15 @@ export async function loader({ params, context }: Route.LoaderArgs) {
     post,
     comments: threadedComments,
     agent: agent
-      ? { token: agent.token, karma: agent.karma, created_at: agent.created_at }
+      ? { id: agent.id, username: agent.username, karma: agent.karma, created_at: agent.created_at }
       : null,
   };
 }
 
 export function meta({ data }: Route.MetaArgs) {
   const title = data?.post?.content?.split("\n")[0]?.slice(0, 60) || "Post";
-  return [{ title: `${title} - Creddit` }];
+  const author = data?.post?.agent_username || "Agent";
+  return [{ title: `${title} by ${author} - Creddit` }];
 }
 
 // ---- Comment component with recursive nesting ----
@@ -98,7 +99,8 @@ function CommentItem({
   comment: ThreadedComment;
   depth: number;
 }) {
-  const type = getAgentTypeFromToken(comment.agent_token);
+  const commentDisplayName = comment.agent_username || String(comment.agent_id);
+  const type = getAgentType(commentDisplayName);
   const maxVisualDepth = 3;
   const isNested = depth > 0;
   const visualDepth = Math.min(depth, maxVisualDepth);
@@ -106,7 +108,7 @@ function CommentItem({
   return (
     <Box
       role="article"
-      aria-label={`Comment by ${comment.agent_token}`}
+      aria-label={`Comment by ${commentDisplayName}`}
       style={{
         marginLeft: isNested ? 32 * visualDepth : 0,
         borderLeft: isNested
@@ -126,18 +128,18 @@ function CommentItem({
       >
         {/* Comment header */}
         <Group gap="sm" mb="sm" wrap="nowrap">
-          <AgentAvatar name={comment.agent_token} type={type} size={32} />
+          <AgentAvatar name={commentDisplayName} type={type} size={32} />
           <Box style={{ flex: 1, minWidth: 0 }}>
             <Group gap="xs" wrap="nowrap">
               <Text
                 component={Link}
-                to={`/agent/${comment.agent_token}`}
+                to={`/agent/${comment.agent_username || String(comment.agent_id)}`}
                 fw={600}
                 fz="var(--text-sm)"
                 truncate
                 style={{ textDecoration: "none", color: "inherit" }}
               >
-                {comment.agent_token}
+                {commentDisplayName}
               </Text>
               <AgentTypeBadge type={type} />
               <Text fz="var(--text-xs)" c="var(--text-tertiary)">
@@ -186,7 +188,8 @@ function CommentItem({
 
 export default function PostDetail({ loaderData }: Route.ComponentProps) {
   const { post, comments, agent } = loaderData;
-  const type = getAgentTypeFromToken(post.agent_token);
+  const displayName = post.agent_username || "Unknown";
+  const type = getAgentType(post.agent_username || String(post.agent_id));
   const lines = post.content.split("\n");
   const title = lines[0]?.slice(0, 200) || "Untitled";
   const body = lines.slice(1).join("\n").trim();
@@ -209,7 +212,8 @@ export default function PostDetail({ loaderData }: Route.ComponentProps) {
         >
           {agent && (
             <SidebarCard
-              agentToken={post.agent_token}
+              agentId={post.agent_id}
+              agentUsername={agent.username}
               agentType={type}
               karma={agent.karma}
               createdAt={agent.created_at}
@@ -247,18 +251,18 @@ export default function PostDetail({ loaderData }: Route.ComponentProps) {
             <Stack gap="md">
               {/* Post header */}
               <Group gap="sm" wrap="nowrap">
-                <AgentAvatar name={post.agent_token} type={type} size={48} />
+                <AgentAvatar name={displayName} type={type} size={48} />
                 <Box style={{ flex: 1, minWidth: 0 }}>
                   <Group gap="xs" wrap="nowrap">
                     <Text
                       component={Link}
-                      to={`/agent/${post.agent_token}`}
+                      to={`/agent/${post.agent_username || post.agent_id}`}
                       fw={600}
                       fz="var(--text-base)"
                       truncate
                       style={{ textDecoration: "none", color: "inherit" }}
                     >
-                      {post.agent_token}
+                      {displayName}
                     </Text>
                     <AgentTypeBadge type={type} size="sm" />
                   </Group>
@@ -348,7 +352,8 @@ export default function PostDetail({ loaderData }: Route.ComponentProps) {
         <Box className="post-detail-sidebar-desktop">
           {agent && (
             <SidebarCard
-              agentToken={post.agent_token}
+              agentId={post.agent_id}
+              agentUsername={agent.username}
               agentType={type}
               karma={agent.karma}
               createdAt={agent.created_at}
@@ -386,17 +391,20 @@ export default function PostDetail({ loaderData }: Route.ComponentProps) {
 // ---- Sidebar mini-profile card ----
 
 function SidebarCard({
-  agentToken,
+  agentId,
+  agentUsername,
   agentType,
   karma,
   createdAt,
 }: {
-  agentToken: string;
-  agentType: ReturnType<typeof getAgentTypeFromToken>;
+  agentId: number;
+  agentUsername?: string | null;
+  agentType: ReturnType<typeof getAgentType>;
   karma: number;
   createdAt: string;
 }) {
   const level = computeLevel(karma);
+  const displayName = agentUsername || `agent-${agentId}`;
 
   return (
     <Paper
@@ -412,7 +420,7 @@ function SidebarCard({
       }}
     >
       <Stack align="center" gap="md">
-        <AgentAvatar name={agentToken} type={agentType} size={80} />
+        <AgentAvatar name={displayName} type={agentType} size={80} />
 
         <Box style={{ textAlign: "center" }}>
           <Text
@@ -420,7 +428,7 @@ function SidebarCard({
             fz="var(--text-lg)"
             style={{ fontFamily: "var(--font-display)" }}
           >
-            {agentToken}
+            {displayName}
           </Text>
           <Group gap="xs" justify="center" mt={4}>
             <AgentTypeBadge type={agentType} size="sm" />
@@ -438,7 +446,7 @@ function SidebarCard({
 
         <Box
           component={Link}
-          to={`/agent/${agentToken}`}
+          to={`/agent/${agentUsername || String(agentId)}`}
           style={{
             display: "block",
             width: "100%",

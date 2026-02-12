@@ -8,8 +8,7 @@
 
 CREATE TABLE IF NOT EXISTS agents (
   id BIGSERIAL PRIMARY KEY,
-  token TEXT NOT NULL UNIQUE,
-  username VARCHAR(20) UNIQUE,
+  username VARCHAR(20) NOT NULL UNIQUE,
   karma INTEGER DEFAULT 0,
   credits INTEGER DEFAULT 0,
   created_at TIMESTAMP DEFAULT NOW(),
@@ -40,7 +39,7 @@ CREATE TABLE IF NOT EXISTS communities (
   display_name VARCHAR(50) NOT NULL,
   description TEXT,
   posting_rules TEXT,
-  creator_agent_token VARCHAR(255) NOT NULL,
+  creator_agent_id BIGINT NOT NULL REFERENCES agents(id),
   post_count INTEGER DEFAULT 0 NOT NULL,
   engagement_score INTEGER DEFAULT 0 NOT NULL,
   created_at TIMESTAMP DEFAULT NOW() NOT NULL,
@@ -53,7 +52,7 @@ CREATE TABLE IF NOT EXISTS communities (
 
 CREATE TABLE IF NOT EXISTS posts (
   id BIGSERIAL PRIMARY KEY,
-  agent_token TEXT NOT NULL REFERENCES agents(token),
+  agent_id BIGINT NOT NULL REFERENCES agents(id),
   community_id INTEGER NOT NULL REFERENCES communities(id),
   content TEXT NOT NULL,
   score INTEGER DEFAULT 0,
@@ -70,10 +69,10 @@ CREATE TABLE IF NOT EXISTS posts (
 CREATE TABLE IF NOT EXISTS votes (
   id BIGSERIAL PRIMARY KEY,
   post_id BIGINT NOT NULL REFERENCES posts(id) ON DELETE CASCADE,
-  agent_token TEXT NOT NULL REFERENCES agents(token),
+  agent_id BIGINT NOT NULL REFERENCES agents(id),
   direction SMALLINT NOT NULL,
   created_at TIMESTAMP DEFAULT NOW(),
-  UNIQUE(post_id, agent_token)
+  UNIQUE(post_id, agent_id)
 );
 
 -- =============================================================================
@@ -84,7 +83,7 @@ CREATE TABLE IF NOT EXISTS comments (
   id BIGSERIAL PRIMARY KEY,
   post_id BIGINT NOT NULL REFERENCES posts(id) ON DELETE CASCADE,
   parent_comment_id BIGINT REFERENCES comments(id) ON DELETE CASCADE,
-  agent_token TEXT NOT NULL REFERENCES agents(token),
+  agent_id BIGINT NOT NULL REFERENCES agents(id),
   content TEXT NOT NULL,
   score INTEGER DEFAULT 0,
   vote_count INTEGER DEFAULT 0,
@@ -99,10 +98,10 @@ CREATE TABLE IF NOT EXISTS comments (
 CREATE TABLE IF NOT EXISTS comment_votes (
   id BIGSERIAL PRIMARY KEY,
   comment_id BIGINT NOT NULL REFERENCES comments(id) ON DELETE CASCADE,
-  agent_token TEXT NOT NULL REFERENCES agents(token),
+  agent_id BIGINT NOT NULL REFERENCES agents(id),
   direction SMALLINT NOT NULL,
   created_at TIMESTAMP DEFAULT NOW(),
-  UNIQUE(comment_id, agent_token)
+  UNIQUE(comment_id, agent_id)
 );
 
 -- =============================================================================
@@ -111,7 +110,7 @@ CREATE TABLE IF NOT EXISTS comment_votes (
 
 CREATE TABLE IF NOT EXISTS transactions (
   id BIGSERIAL PRIMARY KEY,
-  agent_token TEXT NOT NULL REFERENCES agents(token),
+  agent_id BIGINT NOT NULL REFERENCES agents(id),
   karma_spent INTEGER NOT NULL CHECK (karma_spent > 0),
   credits_earned INTEGER NOT NULL CHECK (credits_earned > 0),
   created_at TIMESTAMP DEFAULT NOW()
@@ -138,7 +137,7 @@ CREATE TABLE IF NOT EXISTS rewards (
 
 CREATE TABLE IF NOT EXISTS redemptions (
   id BIGSERIAL PRIMARY KEY,
-  agent_token TEXT NOT NULL REFERENCES agents(token),
+  agent_id BIGINT NOT NULL REFERENCES agents(id),
   reward_id BIGINT NOT NULL REFERENCES rewards(id),
   credits_spent INTEGER NOT NULL CHECK (credits_spent > 0),
   status TEXT DEFAULT 'pending',
@@ -164,7 +163,7 @@ CREATE TABLE IF NOT EXISTS admin_users (
 
 CREATE TABLE IF NOT EXISTS banned_agents (
   id BIGSERIAL PRIMARY KEY,
-  agent_token TEXT NOT NULL UNIQUE,
+  agent_id BIGINT NOT NULL UNIQUE REFERENCES agents(id),
   banned_by TEXT NOT NULL REFERENCES admin_users(username),
   reason TEXT,
   banned_at TIMESTAMP DEFAULT NOW()
@@ -200,18 +199,18 @@ CREATE INDEX IF NOT EXISTS idx_communities_created_at ON communities(created_at 
 
 CREATE INDEX IF NOT EXISTS idx_posts_created_at ON posts(created_at DESC);
 CREATE INDEX IF NOT EXISTS idx_posts_score ON posts(score DESC);
-CREATE INDEX IF NOT EXISTS idx_posts_agent_token ON posts(agent_token);
+CREATE INDEX IF NOT EXISTS idx_posts_agent_id ON posts(agent_id);
 CREATE INDEX IF NOT EXISTS idx_posts_community_id ON posts(community_id);
 
-CREATE INDEX IF NOT EXISTS idx_votes_agent_token ON votes(agent_token);
-CREATE INDEX IF NOT EXISTS idx_votes_post_agent ON votes(post_id, agent_token);
+CREATE INDEX IF NOT EXISTS idx_votes_agent_id ON votes(agent_id);
+CREATE INDEX IF NOT EXISTS idx_votes_post_agent ON votes(post_id, agent_id);
 
 CREATE INDEX IF NOT EXISTS idx_comments_post_id ON comments(post_id);
 CREATE INDEX IF NOT EXISTS idx_comments_parent_id ON comments(parent_comment_id);
 
-CREATE INDEX IF NOT EXISTS idx_transactions_agent_token ON transactions(agent_token);
-CREATE INDEX IF NOT EXISTS idx_redemptions_agent_token ON redemptions(agent_token);
+CREATE INDEX IF NOT EXISTS idx_transactions_agent_id ON transactions(agent_id);
+CREATE INDEX IF NOT EXISTS idx_redemptions_agent_id ON redemptions(agent_id);
 
-CREATE INDEX IF NOT EXISTS idx_banned_agents_token ON banned_agents(agent_token);
+CREATE INDEX IF NOT EXISTS idx_banned_agents_agent_id ON banned_agents(agent_id);
 CREATE INDEX IF NOT EXISTS idx_admin_actions_username ON admin_actions(admin_username);
 CREATE INDEX IF NOT EXISTS idx_admin_actions_created_at ON admin_actions(created_at DESC);

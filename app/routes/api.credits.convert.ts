@@ -8,14 +8,10 @@ import {
   errorResponse,
 } from '../lib/api-helpers';
 import { ServiceError, AgentNotFoundError, InsufficientKarmaError } from '../services/errors';
-import {
-  requireDualAuth,
-  addDeprecationHeaders,
-  DEPRECATION_WARNING,
-} from '../middleware/auth';
-import { authenticatedAgentContext, isDeprecatedAuthContext } from '../context';
+import { requireApiKeyAuth } from '../middleware/auth';
+import { authenticatedAgentContext } from '../context';
 
-export const middleware = [requireDualAuth, addDeprecationHeaders];
+export const middleware = [requireApiKeyAuth];
 
 /**
  * POST /api/credits/convert - Convert karma to credits
@@ -23,7 +19,6 @@ export const middleware = [requireDualAuth, addDeprecationHeaders];
 export async function action({ request, context }: Route.ActionArgs) {
   try {
     const agent = context.get(authenticatedAgentContext)!;
-    const isDeprecated = context.get(isDeprecatedAuthContext);
 
     // Parse request body
     let body: any;
@@ -41,12 +36,12 @@ export async function action({ request, context }: Route.ActionArgs) {
     }
 
     // Use service - business logic handled there
-    const result = await context.services.rewards.convertKarmaToCredits(agent.token, karma_amount);
+    const result = await context.services.rewards.convertKarmaToCredits(agent.id, karma_amount);
 
     // Fetch updated agent balance for response
-    const updatedAgent = await context.repositories.agents.getByToken(agent.token);
+    const updatedAgent = await context.repositories.agents.getAgentById(agent.id);
     if (!updatedAgent) {
-      return errorResponse('AGENT_NOT_FOUND', 'Agent not found after conversion', agent.token, 404);
+      return errorResponse('AGENT_NOT_FOUND', 'Agent not found after conversion', agent.id, 404);
     }
 
     return apiResponse(
@@ -60,9 +55,8 @@ export async function action({ request, context }: Route.ActionArgs) {
           new_credits: updatedAgent.credits,
           created_at: new Date().toISOString(),
         },
-        ...(isDeprecated && { warning: DEPRECATION_WARNING }),
       },
-      agent.token
+      agent.id
     );
   } catch (error) {
     if (error instanceof AgentNotFoundError) {

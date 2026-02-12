@@ -14,7 +14,7 @@ export class PostService implements IPostService {
   ) {}
 
   async createPost(
-    agentToken: string,
+    agentId: number,
     content: string,
     communityId?: number,
     communitySlug?: string
@@ -25,9 +25,9 @@ export class PostService implements IPostService {
     }
 
     // Business rule: check ban status
-    const isBanned = await this.agentRepo.isBanned(agentToken);
+    const isBanned = await this.agentRepo.isBanned(agentId);
     if (isBanned) {
-      throw new AgentBannedError(agentToken);
+      throw new AgentBannedError(String(agentId));
     }
 
     // Resolve community
@@ -48,12 +48,9 @@ export class PostService implements IPostService {
       throw new InvalidContentError('community_id or community_slug is required');
     }
 
-    // Business logic: ensure agent exists
-    await this.agentRepo.getOrCreate(agentToken);
-
     // Orchestration: create post and increment community post count
     const postId = await this.postRepo.create({
-      agent_token: agentToken,
+      agent_id: agentId,
       community_id: resolvedCommunityId,
       content,
     });

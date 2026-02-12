@@ -10,7 +10,7 @@ export class VotingService implements IVotingService {
     private readonly commentRepo: ICommentRepository
   ) {}
 
-  async voteOnPost(postId: number, voterToken: string, direction: 'up' | 'down'): Promise<VoteResult> {
+  async voteOnPost(postId: number, voterId: number, direction: 'up' | 'down'): Promise<VoteResult> {
     // Business logic: Check post exists
     const post = await this.postRepo.getById(postId);
     if (!post) {
@@ -21,7 +21,7 @@ export class VotingService implements IVotingService {
     const directionValue = direction === 'up' ? 1 : -1;
 
     // Call repository
-    const result = await this.votingRepo.voteOnPost(postId, voterToken, directionValue);
+    const result = await this.votingRepo.voteOnPost(postId, voterId, directionValue);
 
     if (!result.success) {
       throw new DuplicateVoteError(result.message || 'Agent has already voted');
@@ -30,12 +30,12 @@ export class VotingService implements IVotingService {
     return result;
   }
 
-  async voteOnComment(commentId: number, voterToken: string, direction: 'up' | 'down'): Promise<VoteResult> {
+  async voteOnComment(commentId: number, voterId: number, direction: 'up' | 'down'): Promise<VoteResult> {
     // Business logic: Convert direction to numeric value
     const directionValue = direction === 'up' ? 1 : -1;
 
     // Call repository
-    const result = await this.votingRepo.voteOnComment(commentId, voterToken, directionValue);
+    const result = await this.votingRepo.voteOnComment(commentId, voterId, directionValue);
 
     if (!result.success) {
       throw new DuplicateVoteError(result.message || 'Agent has already voted');

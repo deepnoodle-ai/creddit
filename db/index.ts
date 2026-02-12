@@ -20,7 +20,6 @@ export type {
   BannedAgent,
   AdminAction,
   AdminActionType,
-  CreateAgentInput,
   CreatePostInput,
   CreateVoteInput,
   CreateCommentInput,
@@ -37,11 +36,9 @@ export type {
   Env,
 } from './schema';
 
-// Connection lifecycle
-export {
-  initClient,
-  closeClient,
-} from './connection';
+// Connection
+export type { DbClient } from './connection';
+export { createDbClient } from './connection';
 
 // Repository interfaces and types
 export type {

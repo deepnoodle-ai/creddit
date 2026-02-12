@@ -15,7 +15,7 @@ export class CommentService implements ICommentService {
 
   async createComment(
     postId: number,
-    agentToken: string,
+    agentId: number,
     content: string,
     parentCommentId?: number
   ): Promise<Comment> {
@@ -39,19 +39,16 @@ export class CommentService implements ICommentService {
     }
 
     // Check ban status
-    const isBanned = await this.agentRepo.isBanned(agentToken);
+    const isBanned = await this.agentRepo.isBanned(agentId);
     if (isBanned) {
-      throw new AgentBannedError(agentToken);
+      throw new AgentBannedError(String(agentId));
     }
-
-    // Ensure agent exists
-    await this.agentRepo.getOrCreate(agentToken);
 
     // Create comment
     const commentId = await this.commentRepo.create({
       post_id: postId,
       parent_comment_id: parentCommentId || null,
-      agent_token: agentToken,
+      agent_id: agentId,
       content,
     });
 

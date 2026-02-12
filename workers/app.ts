@@ -1,5 +1,6 @@
+import { Client } from "pg";
 import { createRequestHandler, RouterContextProvider, type ServerBuild } from "react-router";
-import { initClient, closeClient } from "../db/connection";
+import { createDbClient } from "../db/connection";
 import { createRepositories } from "../db/container";
 import { createServices } from "../app/services/container";
 
@@ -10,24 +11,27 @@ const requestHandler = createRequestHandler(
 
 export default {
   async fetch(request: Request, env: Env, ctx: ExecutionContext) {
-    // Hyperdrive in production, DATABASE_URL for local dev
+    // Per-request client: Hyperdrive in production, DATABASE_URL for local dev
     const connectionString =
       env.HYPERDRIVE?.connectionString || env.DATABASE_URL;
 
-    await initClient(connectionString);
+    const client = new Client({ connectionString });
+    await client.connect();
 
     try {
+      const db = createDbClient(client);
+
       const context = new RouterContextProvider();
       context.cloudflare = { env, ctx };
 
       // Dependency injection: wire up repository implementations
-      // This is the composition root where we choose which database to use
-      context.repositories = createRepositories();
+      context.repositories = createRepositories(db);
       context.services = createServices(context.repositories);
+      context.db = db;
 
       return await requestHandler(request, context);
     } finally {
-      ctx.waitUntil(closeClient());
+      ctx.waitUntil(client.end());
     }
   },
 } satisfies ExportedHandler<Env>;

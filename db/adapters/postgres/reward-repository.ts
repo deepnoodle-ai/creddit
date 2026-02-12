@@ -4,7 +4,7 @@
  * This adapter handles karma-to-credit conversions and reward redemptions.
  */
 
-import { query, queryOne, transaction } from '../../connection';
+import type { DbClient } from '../../connection';
 import type { IRewardRepository, ConversionResult, RedemptionResult, CreditBalance } from '../../repositories';
 import type { Reward, Redemption, Transaction, CreateRewardInput, RewardType } from '../../schema';
 
@@ -15,14 +15,15 @@ import type { Reward, Redemption, Transaction, CreateRewardInput, RewardType } f
 const KARMA_TO_CREDIT_RATIO = 100;
 
 export class PostgresRewardRepository implements IRewardRepository {
+  constructor(private db: DbClient) {}
   async getActiveRewards(): Promise<Reward[]> {
-    return query<Reward>(
+    return this.db.query<Reward>(
       'SELECT * FROM rewards WHERE active = true ORDER BY credit_cost ASC'
     );
   }
 
   async getById(id: number): Promise<Reward | null> {
-    return queryOne<Reward>(
+    return this.db.queryOne<Reward>(
       'SELECT * FROM rewards WHERE id = $1',
       [id]
     );
@@ -31,7 +32,7 @@ export class PostgresRewardRepository implements IRewardRepository {
   async create(input: CreateRewardInput): Promise<number> {
     const active = input.active !== undefined ? input.active : true;
 
-    const result = await queryOne<{ id: number }>(`
+    const result = await this.db.queryOne<{ id: number }>(`
       INSERT INTO rewards (name, description, credit_cost, reward_type, reward_data, active)
       VALUES ($1, $2, $3, $4, $5, $6)
       RETURNING id
@@ -52,13 +53,13 @@ export class PostgresRewardRepository implements IRewardRepository {
   }
 
   async setActive(id: number, active: boolean): Promise<void> {
-    await query(
+    await this.db.query(
       'UPDATE rewards SET active = $1 WHERE id = $2',
       [active, id]
     );
   }
 
-  async redeem(agentToken: string, rewardId: number): Promise<RedemptionResult> {
+  async redeem(agentId: number, rewardId: number): Promise<RedemptionResult> {
     try {
       // Get reward details
       const reward = await this.getById(rewardId);
@@ -80,9 +81,9 @@ export class PostgresRewardRepository implements IRewardRepository {
       }
 
       // Get current credits
-      const agent = await queryOne<{ credits: number }>(
-        'SELECT credits FROM agents WHERE token = $1',
-        [agentToken]
+      const agent = await this.db.queryOne<{ credits: number }>(
+        'SELECT credits FROM agents WHERE id = $1',
+        [agentId]
       );
 
       if (!agent || agent.credits < reward.credit_cost) {
@@ -94,19 +95,19 @@ export class PostgresRewardRepository implements IRewardRepository {
       }
 
       // Atomic transaction: deduct credits, create redemption record
-      const redemptionId = await transaction(async (client) => {
+      const redemptionId = await this.db.transaction(async (client) => {
         // 1. Deduct credits from agent
         await client.query(
-          'UPDATE agents SET credits = credits - $1 WHERE token = $2',
-          [reward.credit_cost, agentToken]
+          'UPDATE agents SET credits = credits - $1 WHERE id = $2',
+          [reward.credit_cost, agentId]
         );
 
         // 2. Create redemption record
         const result = await client.query(
-          `INSERT INTO redemptions (agent_token, reward_id, credits_spent, status)
+          `INSERT INTO redemptions (agent_id, reward_id, credits_spent, status)
            VALUES ($1, $2, $3, 'pending')
            RETURNING id`,
-          [agentToken, rewardId, reward.credit_cost]
+          [agentId, rewardId, reward.credit_cost]
         );
 
         return result.rows[0].id;
@@ -132,8 +133,8 @@ export class PostgresRewardRepository implements IRewardRepository {
     }
   }
 
-  async getCreditBalance(agentToken: string): Promise<CreditBalance> {
-    const result = await queryOne<{
+  async getCreditBalance(agentId: number): Promise<CreditBalance> {
+    const result = await this.db.queryOne<{
       cached_credits: number;
       total_earned: number;
       total_spent: number;
@@ -143,11 +144,11 @@ export class PostgresRewardRepository implements IRewardRepository {
         COALESCE(SUM(t.credits_earned), 0) as total_earned,
         COALESCE(SUM(r.credits_spent), 0) as total_spent
       FROM agents a
-      LEFT JOIN transactions t ON t.agent_token = a.token
-      LEFT JOIN redemptions r ON r.agent_token = a.token AND r.status = 'fulfilled'
-      WHERE a.token = $1
+      LEFT JOIN transactions t ON t.agent_id = a.id
+      LEFT JOIN redemptions r ON r.agent_id = a.id AND r.status = 'fulfilled'
+      WHERE a.id = $1
       GROUP BY a.credits
-    `, [agentToken]);
+    `, [agentId]);
 
     return {
       total_earned: result?.total_earned || 0,
@@ -156,7 +157,7 @@ export class PostgresRewardRepository implements IRewardRepository {
     };
   }
 
-  async convertKarmaToCredits(agentToken: string, karmaAmount: number): Promise<ConversionResult> {
+  async convertKarmaToCredits(agentId: number, karmaAmount: number): Promise<ConversionResult> {
     try {
       // Validate amount
       if (karmaAmount < KARMA_TO_CREDIT_RATIO) {
@@ -176,9 +177,9 @@ export class PostgresRewardRepository implements IRewardRepository {
       }
 
       // Get current karma
-      const agent = await queryOne<{ karma: number }>(
-        'SELECT karma FROM agents WHERE token = $1',
-        [agentToken]
+      const agent = await this.db.queryOne<{ karma: number }>(
+        'SELECT karma FROM agents WHERE id = $1',
+        [agentId]
       );
 
       if (!agent || agent.karma < karmaAmount) {
@@ -192,23 +193,23 @@ export class PostgresRewardRepository implements IRewardRepository {
       const creditsEarned = Math.floor(karmaAmount / KARMA_TO_CREDIT_RATIO);
 
       // Atomic transaction: deduct karma, add credits, log transaction
-      const transactionId = await transaction(async (client) => {
+      const transactionId = await this.db.transaction(async (client) => {
         // 1. Deduct karma from agent
         await client.query(
-          'UPDATE agents SET karma = karma - $1 WHERE token = $2',
-          [karmaAmount, agentToken]
+          'UPDATE agents SET karma = karma - $1 WHERE id = $2',
+          [karmaAmount, agentId]
         );
 
         // 2. Add credits to agent
         await client.query(
-          'UPDATE agents SET credits = credits + $1 WHERE token = $2',
-          [creditsEarned, agentToken]
+          'UPDATE agents SET credits = credits + $1 WHERE id = $2',
+          [creditsEarned, agentId]
         );
 
         // 3. Create transaction log entry
         const result = await client.query(
-          'INSERT INTO transactions (agent_token, karma_spent, credits_earned) VALUES ($1, $2, $3) RETURNING id',
-          [agentToken, karmaAmount, creditsEarned]
+          'INSERT INTO transactions (agent_id, karma_spent, credits_earned) VALUES ($1, $2, $3) RETURNING id',
+          [agentId, karmaAmount, creditsEarned]
         );
 
         return result.rows[0].id;
@@ -235,26 +236,26 @@ export class PostgresRewardRepository implements IRewardRepository {
   }
 
   async getAgentRedemptions(
-    agentToken: string,
+    agentId: number,
     limit: number
   ): Promise<Array<Redemption & { reward_name: string; reward_type: RewardType }>> {
-    return query<Redemption & { reward_name: string; reward_type: RewardType }>(`
+    return this.db.query<Redemption & { reward_name: string; reward_type: RewardType }>(`
       SELECT
         r.*,
         rw.name as reward_name,
         rw.reward_type
       FROM redemptions r
       JOIN rewards rw ON rw.id = r.reward_id
-      WHERE r.agent_token = $1
+      WHERE r.agent_id = $1
       ORDER BY r.redeemed_at DESC
       LIMIT $2
-    `, [agentToken, limit]);
+    `, [agentId, limit]);
   }
 
   async getPendingRedemptions(
     limit: number
   ): Promise<Array<Redemption & { reward_name: string; reward_type: RewardType }>> {
-    return query<Redemption & { reward_name: string; reward_type: RewardType }>(`
+    return this.db.query<Redemption & { reward_name: string; reward_type: RewardType }>(`
       SELECT
         r.*,
         rw.name as reward_name,
@@ -267,25 +268,25 @@ export class PostgresRewardRepository implements IRewardRepository {
     `, [limit]);
   }
 
-  async getAgentTransactions(agentToken: string, limit: number): Promise<Transaction[]> {
-    return query<Transaction>(
-      'SELECT * FROM transactions WHERE agent_token = $1 ORDER BY created_at DESC LIMIT $2',
-      [agentToken, limit]
+  async getAgentTransactions(agentId: number, limit: number): Promise<Transaction[]> {
+    return this.db.query<Transaction>(
+      'SELECT * FROM transactions WHERE agent_id = $1 ORDER BY created_at DESC LIMIT $2',
+      [agentId, limit]
     );
   }
 
   async getAgentActiveRewards(
-    agentToken: string
+    agentId: number
   ): Promise<Array<Reward & { redeemed_at: string }>> {
-    return query<Reward & { redeemed_at: string }>(`
+    return this.db.query<Reward & { redeemed_at: string }>(`
       SELECT
         rw.*,
         r.redeemed_at
       FROM redemptions r
       JOIN rewards rw ON rw.id = r.reward_id
-      WHERE r.agent_token = $1 AND r.status = 'fulfilled'
+      WHERE r.agent_id = $1 AND r.status = 'fulfilled'
       ORDER BY r.fulfilled_at DESC
-    `, [agentToken]);
+    `, [agentId]);
   }
 
   async updateRedemptionStatus(
@@ -293,12 +294,12 @@ export class PostgresRewardRepository implements IRewardRepository {
     status: 'pending' | 'fulfilled' | 'failed'
   ): Promise<void> {
     if (status === 'fulfilled') {
-      await query(
+      await this.db.query(
         'UPDATE redemptions SET status = $1, fulfilled_at = NOW() WHERE id = $2',
         [status, redemptionId]
       );
     } else {
-      await query(
+      await this.db.query(
         'UPDATE redemptions SET status = $1 WHERE id = $2',
         [status, redemptionId]
       );
@@ -307,12 +308,12 @@ export class PostgresRewardRepository implements IRewardRepository {
 
   async refundRedemption(redemptionId: number): Promise<void> {
     // Get redemption details
-    const redemption = await queryOne<{
-      agent_token: string;
+    const redemption = await this.db.queryOne<{
+      agent_id: number;
       credits_spent: number;
       status: string;
     }>(
-      'SELECT agent_token, credits_spent, status FROM redemptions WHERE id = $1',
+      'SELECT agent_id, credits_spent, status FROM redemptions WHERE id = $1',
       [redemptionId]
     );
 
@@ -325,10 +326,10 @@ export class PostgresRewardRepository implements IRewardRepository {
     }
 
     // Atomic: refund credits, mark as failed
-    await transaction(async (client) => {
+    await this.db.transaction(async (client) => {
       await client.query(
-        'UPDATE agents SET credits = credits + $1 WHERE token = $2',
-        [redemption.credits_spent, redemption.agent_token]
+        'UPDATE agents SET credits = credits + $1 WHERE id = $2',
+        [redemption.credits_spent, redemption.agent_id]
       );
 
       await client.query(
@@ -338,25 +339,25 @@ export class PostgresRewardRepository implements IRewardRepository {
     });
   }
 
-  async calculateCreditBalanceFromTransactions(agentToken: string): Promise<number> {
-    const result = await queryOne<{ balance: number }>(`
+  async calculateCreditBalanceFromTransactions(agentId: number): Promise<number> {
+    const result = await this.db.queryOne<{ balance: number }>(`
       SELECT
         COALESCE(SUM(t.credits_earned), 0) - COALESCE(SUM(r.credits_spent), 0) as balance
       FROM agents a
-      LEFT JOIN transactions t ON t.agent_token = a.token
-      LEFT JOIN redemptions r ON r.agent_token = a.token AND r.status = 'fulfilled'
-      WHERE a.token = $1
-    `, [agentToken]);
+      LEFT JOIN transactions t ON t.agent_id = a.id
+      LEFT JOIN redemptions r ON r.agent_id = a.id AND r.status = 'fulfilled'
+      WHERE a.id = $1
+    `, [agentId]);
 
     return result?.balance || 0;
   }
 
-  async reconcileCreditBalance(agentToken: string): Promise<number> {
-    const actualBalance = await this.calculateCreditBalanceFromTransactions(agentToken);
+  async reconcileCreditBalance(agentId: number): Promise<number> {
+    const actualBalance = await this.calculateCreditBalanceFromTransactions(agentId);
 
-    await query(
-      'UPDATE agents SET credits = $1 WHERE token = $2',
-      [actualBalance, agentToken]
+    await this.db.query(
+      'UPDATE agents SET credits = $1 WHERE id = $2',
+      [actualBalance, agentId]
     );
 
     return actualBalance;

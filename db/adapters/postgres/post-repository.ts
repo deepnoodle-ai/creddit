@@ -5,28 +5,30 @@
  * It's isolated from business logic and can be swapped with other implementations (e.g., D1).
  */
 
-import { query, queryOne } from '../../connection';
+import type { DbClient } from '../../connection';
 import type { IPostRepository } from '../../repositories';
 import type { Post, CreatePostInput, PostRanking, PostWithAgent } from '../../schema';
 
 export class PostgresPostRepository implements IPostRepository {
+  constructor(private db: DbClient) {}
   async getHotPosts(limit: number, communityId?: number): Promise<PostRanking[]> {
     const where = communityId ? 'WHERE community_id = $2' : '';
     const params: any[] = [limit];
     if (communityId) params.push(communityId);
 
     const sql = `
-      SELECT p.*,
+      SELECT p.*, a.username as agent_username,
         c.slug as community_slug, c.display_name as community_name,
         p.score / (POWER(EXTRACT(EPOCH FROM (NOW() - p.created_at)) / 3600 + 2, 1.5)) as hot_score
       FROM posts p
+      JOIN agents a ON p.agent_id = a.id
       JOIN communities c ON p.community_id = c.id
       ${where}
       ORDER BY hot_score DESC
       LIMIT $1
     `;
 
-    return query<PostRanking>(sql, params);
+    return this.db.query<PostRanking>(sql, params);
   }
 
   async getNewPosts(limit: number, communityId?: number): Promise<Post[]> {
@@ -34,9 +36,10 @@ export class PostgresPostRepository implements IPostRepository {
     const params: any[] = [limit];
     if (communityId) params.push(communityId);
 
-    return query<Post>(
-      `SELECT p.*, c.slug as community_slug, c.display_name as community_name
+    return this.db.query<Post>(
+      `SELECT p.*, a.username as agent_username, c.slug as community_slug, c.display_name as community_name
        FROM posts p
+       JOIN agents a ON p.agent_id = a.id
        JOIN communities c ON p.community_id = c.id
        ${where}
        ORDER BY p.created_at DESC LIMIT $1`,
@@ -63,9 +66,10 @@ export class PostgresPostRepository implements IPostRepository {
     const where = conditions.length > 0 ? `WHERE ${conditions.join(' AND ')}` : '';
     params.push(limit);
 
-    return query<Post>(
-      `SELECT p.*, c.slug as community_slug, c.display_name as community_name
+    return this.db.query<Post>(
+      `SELECT p.*, a.username as agent_username, c.slug as community_slug, c.display_name as community_name
        FROM posts p
+       JOIN agents a ON p.agent_id = a.id
        JOIN communities c ON p.community_id = c.id
        ${where}
        ORDER BY p.score DESC LIMIT $${paramIdx}`,
@@ -74,23 +78,25 @@ export class PostgresPostRepository implements IPostRepository {
   }
 
   async getById(id: number): Promise<Post | null> {
-    return queryOne<Post>(
-      `SELECT p.*, c.slug as community_slug, c.display_name as community_name
+    return this.db.queryOne<Post>(
+      `SELECT p.*, a.username as agent_username, c.slug as community_slug, c.display_name as community_name
        FROM posts p
+       JOIN agents a ON p.agent_id = a.id
        JOIN communities c ON p.community_id = c.id
        WHERE p.id = $1`,
       [id]
     );
   }
 
-  async getByAgent(agentToken: string, limit: number): Promise<Post[]> {
-    return query<Post>(
-      `SELECT p.*, c.slug as community_slug, c.display_name as community_name
+  async getByAgent(agentId: number, limit: number): Promise<Post[]> {
+    return this.db.query<Post>(
+      `SELECT p.*, a.username as agent_username, c.slug as community_slug, c.display_name as community_name
        FROM posts p
+       JOIN agents a ON p.agent_id = a.id
        JOIN communities c ON p.community_id = c.id
-       WHERE p.agent_token = $1
+       WHERE p.agent_id = $1
        ORDER BY p.created_at DESC LIMIT $2`,
-      [agentToken, limit]
+      [agentId, limit]
     );
   }
 
@@ -110,11 +116,11 @@ export class PostgresPostRepository implements IPostRepository {
         orderBy = 'p.created_at DESC';
     }
 
-    return query<PostWithAgent>(
-      `SELECT p.*, a.karma as agent_karma, a.created_at as agent_created_at,
+    return this.db.query<PostWithAgent>(
+      `SELECT p.*, a.username as agent_username, a.karma as agent_karma, a.created_at as agent_created_at,
               c.slug as community_slug, c.display_name as community_name
        FROM posts p
-       JOIN agents a ON p.agent_token = a.token
+       JOIN agents a ON p.agent_id = a.id
        JOIN communities c ON p.community_id = c.id
        WHERE p.community_id = $1
        ORDER BY ${orderBy}
@@ -124,9 +130,9 @@ export class PostgresPostRepository implements IPostRepository {
   }
 
   async create(input: CreatePostInput): Promise<number> {
-    const result = await queryOne<{ id: number }>(
-      'INSERT INTO posts (agent_token, community_id, content) VALUES ($1, $2, $3) RETURNING id',
-      [input.agent_token, input.community_id, input.content]
+    const result = await this.db.queryOne<{ id: number }>(
+      'INSERT INTO posts (agent_id, community_id, content) VALUES ($1, $2, $3) RETURNING id',
+      [input.agent_id, input.community_id, input.content]
     );
 
     if (!result) {

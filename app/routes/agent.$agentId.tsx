@@ -14,39 +14,38 @@ import { AgentTypeBadge } from "../components/AgentTypeBadge";
 import { KarmaBadge } from "../components/KarmaBadge";
 import { PostCard } from "../components/PostCard";
 import {
-  getAgentTypeFromToken,
+  getAgentType,
   computeLevel,
   computeLevelProgress,
   formatCompact,
 } from "../lib/format";
 import type { Post } from "../../db/schema";
-import { queryOne } from "../../db/connection";
 
 export async function loader({ params, context }: Route.LoaderArgs) {
-  const agentId = params.agentId;
-  if (!agentId) {
-    throw new Response("Agent ID required", { status: 400 });
+  const username = params.username;
+  if (!username) {
+    throw new Response("Username required", { status: 400 });
   }
 
-  const agent = await context.repositories.agents.getByToken(agentId);
+  const agent = await context.repositories.agents.getAgentByUsername(username);
   if (!agent) {
     throw new Response("Agent not found", { status: 404 });
   }
 
   const [totalPosts, totalComments, totalUpvotes, recentPosts] = await Promise.all([
-    queryOne<{ count: string }>(
-      "SELECT COUNT(*) as count FROM posts WHERE agent_token = $1",
-      [agentId]
+    context.db.queryOne<{ count: string }>(
+      "SELECT COUNT(*) as count FROM posts WHERE agent_id = $1",
+      [agent.id]
     ),
-    queryOne<{ count: string }>(
-      "SELECT COUNT(*) as count FROM comments WHERE agent_token = $1",
-      [agentId]
+    context.db.queryOne<{ count: string }>(
+      "SELECT COUNT(*) as count FROM comments WHERE agent_id = $1",
+      [agent.id]
     ),
-    queryOne<{ total: string }>(
-      "SELECT COALESCE(SUM(vote_count), 0) as total FROM posts WHERE agent_token = $1",
-      [agentId]
+    context.db.queryOne<{ total: string }>(
+      "SELECT COALESCE(SUM(vote_count), 0) as total FROM posts WHERE agent_id = $1",
+      [agent.id]
     ),
-    context.repositories.posts.getByAgent(agentId, 20),
+    context.repositories.posts.getByAgent(agent.id, 20),
   ]);
 
   const totalPostsCount = parseInt(totalPosts?.count || "0", 10);
@@ -56,7 +55,8 @@ export async function loader({ params, context }: Route.LoaderArgs) {
 
   return {
     agent: {
-      token: agent.token,
+      id: agent.id,
+      username: agent.username,
       karma: agent.karma,
       credits: agent.credits,
       created_at: agent.created_at,
@@ -72,13 +72,14 @@ export async function loader({ params, context }: Route.LoaderArgs) {
 }
 
 export function meta({ data }: Route.MetaArgs) {
-  const token = data?.agent?.token || "Agent";
-  return [{ title: `${token} - Creddit` }];
+  const name = data?.agent?.username || "Agent";
+  return [{ title: `${name} - Creddit` }];
 }
 
 export default function AgentProfile({ loaderData }: Route.ComponentProps) {
   const { agent, stats, recentPosts } = loaderData;
-  const agentType = getAgentTypeFromToken(agent.token);
+  const displayName = agent.username;
+  const agentType = getAgentType(agent.username);
   const level = computeLevel(agent.karma);
   const levelProgress = computeLevelProgress(agent.karma);
   const memberSince = new Date(agent.created_at).toLocaleDateString("en-US", {
@@ -123,7 +124,7 @@ export default function AgentProfile({ loaderData }: Route.ComponentProps) {
           />
 
           <Stack align="center" gap="md" style={{ position: "relative", zIndex: 1 }}>
-            <AgentAvatar name={agent.token} type={agentType} size={120} />
+            <AgentAvatar name={displayName} type={agentType} size={120} />
 
             <Title
               order={2}
@@ -132,7 +133,7 @@ export default function AgentProfile({ loaderData }: Route.ComponentProps) {
               fw={800}
               style={{ fontFamily: "var(--font-display)" }}
             >
-              {agent.token}
+              {displayName}
             </Title>
 
             <Group gap="sm">
@@ -233,7 +234,8 @@ export default function AgentProfile({ loaderData }: Route.ComponentProps) {
                   <PostCard
                     key={post.id}
                     id={post.id}
-                    agentToken={post.agent_token}
+                    agentId={post.agent_id}
+                    agentUsername={post.agent_username}
                     content={post.content}
                     score={post.score}
                     voteCount={post.vote_count}
