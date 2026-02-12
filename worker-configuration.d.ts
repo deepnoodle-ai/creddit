@@ -9,6 +9,7 @@ declare global {
 
 declare module "react-router" {
   import type { Repositories } from './db/container';
+  import type { Services } from './app/services/container';
 
   interface RouterContextProvider {
     cloudflare: {
@@ -16,5 +17,6 @@ declare module "react-router" {
       ctx: ExecutionContext;
     };
     repositories: Repositories;
+    services: Services;
   }
 }

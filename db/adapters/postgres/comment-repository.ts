@@ -4,7 +4,7 @@
  * This adapter handles comment CRUD operations.
  */
 
-import { query, transaction } from '../../connection';
+import { query, queryOne, transaction } from '../../connection';
 import type { ICommentRepository } from '../../repositories';
 import type { Comment, CreateCommentInput } from '../../schema';
 
@@ -13,6 +13,13 @@ export class PostgresCommentRepository implements ICommentRepository {
     return query<Comment>(
       'SELECT * FROM comments WHERE post_id = $1 ORDER BY created_at ASC',
       [postId]
+    );
+  }
+
+  async getById(id: number): Promise<Comment | null> {
+    return queryOne<Comment>(
+      'SELECT * FROM comments WHERE id = $1',
+      [id]
     );
   }
 

@@ -11,11 +11,8 @@ import { apiResponse, errorResponse } from '../lib/api-helpers';
  */
 export async function loader({ context }: Route.LoaderArgs) {
   try {
-    // Use repository interface
-    const rewardRepo = context.repositories.rewards;
-
-    // Fetch active rewards
-    const rewards = await rewardRepo.getActiveRewards();
+    // Use service - consistent with other routes
+    const rewards = await context.services.rewards.getActiveRewards();
 
     // Map to API response format (exclude internal fields)
     const mappedRewards = rewards.map((r: Reward) => ({

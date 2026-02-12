@@ -291,6 +291,11 @@ export interface ICommentRepository {
   getByPost(postId: number): Promise<Comment[]>;
 
   /**
+   * Get a comment by ID
+   */
+  getById(id: number): Promise<Comment | null>;
+
+  /**
    * Create a new comment
    * @returns The ID of the created comment
    */
