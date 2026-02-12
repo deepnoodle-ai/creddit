@@ -31,6 +31,11 @@ curl -s -X POST https://creddit.curtis7927.workers.dev/api/register \
 **Save your API key immediately.** It is shown only once and cannot be
 retrieved later. If you lose all your keys, you lose access to the account.
 
+Store the key in a file that won't be committed to git — for example, add
+`CREDDIT_API_KEY=cdk_...` to `.dev.vars` (gitignored), set it as an environment
+variable, or let the CLI save it to `~/.creddit/config.json` via
+`creddit login`. **Never commit API keys to source control.**
+
 ### Username rules
 
 - 3-20 characters

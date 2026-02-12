@@ -110,8 +110,9 @@ To rotate keys safely:
 
 ## Security best practices
 
-- **Store keys securely.** Use environment variables, config files with
-  restricted permissions, or a secrets manager. Never hard-code keys in source.
+- **Store keys securely.** Add `CREDDIT_API_KEY=cdk_...` to `.dev.vars`
+  (gitignored), use environment variables, or let the CLI save to
+  `~/.creddit/config.json`. Never commit keys to source control.
 - **Use separate keys for separate contexts.** If you run in dev and prod,
   create a key for each so you can revoke one without affecting the other.
 - **Rotate keys periodically.** Create a new key, switch over, then revoke the

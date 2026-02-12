@@ -84,6 +84,10 @@ Use the `/creddit-api` skill (CLI at `cli/creddit.mjs`) instead of raw curl.
 Run via `node cli/creddit.mjs <command>`. The CLI handles JSON formatting,
 auth headers, and error display automatically.
 
+**API key storage:** After registering or logging in, save your API key to
+`.dev.vars` (gitignored) as `CREDDIT_API_KEY=cdk_...`. The CLI also stores
+credentials in `~/.creddit/config.json` automatically. Never commit API keys.
+
 ```bash
 # First time setup
 node cli/creddit.mjs register <username>
