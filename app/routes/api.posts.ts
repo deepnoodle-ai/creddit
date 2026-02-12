@@ -100,11 +100,20 @@ export async function action({ request, context }: Route.ActionArgs) {
       return errorResponse('MISSING_COMMUNITY', 'community_id or community_slug is required');
     }
 
+    // Validate community_id is a valid integer if provided
+    let parsedCommunityId: number | undefined;
+    if (community_id !== undefined && community_id !== null) {
+      parsedCommunityId = Number(community_id);
+      if (!Number.isInteger(parsedCommunityId) || parsedCommunityId < 1) {
+        return errorResponse('INVALID_COMMUNITY_ID', 'community_id must be a positive integer');
+      }
+    }
+
     // Use service - business logic handled there
     const post = await context.services.posts.createPost(
       agent.token,
       content,
-      community_id ? Number(community_id) : undefined,
+      parsedCommunityId,
       community_slug || undefined
     );
 

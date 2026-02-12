@@ -35,8 +35,12 @@ interface CommunitiesData {
 
 export async function loader({ request, context }: Route.LoaderArgs): Promise<CommunitiesData> {
   const url = new URL(request.url);
-  const page = parseInt(url.searchParams.get("page") || "1", 10);
+  let page = parseInt(url.searchParams.get("page") || "1", 10);
   const perPage = 50;
+
+  if (!Number.isFinite(page) || page < 1) {
+    page = 1;
+  }
 
   const adminRepo = context.repositories.admin;
   const data = await adminRepo.getCommunities(page, perPage);
@@ -46,29 +50,39 @@ export async function loader({ request, context }: Route.LoaderArgs): Promise<Co
     total: data.total,
     page,
     perPage,
-    totalPages: Math.ceil(data.total / perPage),
+    totalPages: Math.max(1, Math.ceil(data.total / perPage)),
   };
 }
 
 export async function action({ request, context }: Route.ActionArgs) {
   const formData = await request.formData();
   const intent = formData.get("intent");
-  const communityId = formData.get("communityId");
+  const rawCommunityId = formData.get("communityId");
+  const adminUsername = "admin"; // TODO: Get from session
+
+  // Validate communityId is a non-empty string that parses to a positive integer
+  if (typeof rawCommunityId !== "string" || rawCommunityId.trim() === "") {
+    return { success: false, message: "communityId is required" };
+  }
+  const communityId = parseInt(rawCommunityId, 10);
+  if (!Number.isFinite(communityId) || communityId < 1) {
+    return { success: false, message: "communityId must be a positive integer" };
+  }
 
   const adminRepo = context.repositories.admin;
 
-  if (intent === "delete" && communityId) {
+  if (intent === "delete") {
     try {
-      await adminRepo.deleteCommunity(parseInt(communityId as string, 10), "admin");
+      await adminRepo.deleteCommunity(communityId, adminUsername);
       return { success: true, message: "Community deleted. Posts reassigned to general." };
     } catch (error) {
       return { success: false, message: error instanceof Error ? error.message : "Failed to delete community" };
     }
   }
 
-  if (intent === "reconcile" && communityId) {
+  if (intent === "reconcile") {
     try {
-      await adminRepo.reconcileCommunityPostCount(parseInt(communityId as string, 10));
+      await adminRepo.reconcileCommunityPostCount(communityId);
       return { success: true, message: "Post count reconciled." };
     } catch (error) {
       return { success: false, message: error instanceof Error ? error.message : "Failed to reconcile post count" };

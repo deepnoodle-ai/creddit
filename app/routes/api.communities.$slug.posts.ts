@@ -10,6 +10,10 @@ import { ServiceError } from '../services/errors';
  * GET /api/communities/:slug/posts - Get posts filtered to a community (public)
  */
 export async function loader({ request, params, context }: Route.LoaderArgs) {
+  if (!params.slug) {
+    return errorResponse('NOT_FOUND', 'Community slug is required', null, 404);
+  }
+
   try {
     const url = new URL(request.url);
     const rawSort = url.searchParams.get('sort');

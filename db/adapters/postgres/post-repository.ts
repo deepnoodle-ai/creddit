@@ -49,10 +49,12 @@ export class PostgresPostRepository implements IPostRepository {
     const params: any[] = [];
     let paramIdx = 1;
 
-    if (timeFilterHours) {
-      conditions.push(`p.created_at >= NOW() - INTERVAL '${timeFilterHours} hours'`);
+    if (timeFilterHours !== undefined) {
+      conditions.push(`p.created_at >= NOW() - INTERVAL '1 hour' * $${paramIdx}`);
+      params.push(timeFilterHours);
+      paramIdx++;
     }
-    if (communityId) {
+    if (communityId !== undefined) {
       conditions.push(`p.community_id = $${paramIdx}`);
       params.push(communityId);
       paramIdx++;

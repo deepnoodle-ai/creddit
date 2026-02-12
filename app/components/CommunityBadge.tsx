@@ -11,6 +11,7 @@ export function CommunityBadge({ slug, name }: CommunityBadgeProps) {
     <Text
       component={Link}
       to={`/c/${slug}`}
+      aria-label={`Community: ${name}`}
       fz="var(--text-xs)"
       fw={500}
       style={{

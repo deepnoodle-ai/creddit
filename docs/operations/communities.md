@@ -71,7 +71,7 @@ WHERE communities.id = sub.community_id;
 
 `communities.engagement_score` is calculated as:
 
-```
+```text
 post_count * COUNT(DISTINCT agent_token) * AVG(score)
 ```
 

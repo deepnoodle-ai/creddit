@@ -23,7 +23,11 @@ export const middleware = [mutationAuth(requireDualAuth), addDeprecationHeaders]
 export async function loader({ request, context }: Route.LoaderArgs) {
   try {
     const url = new URL(request.url);
-    const sort = (url.searchParams.get('sort') || 'engagement') as CommunitySortOption;
+    const validSortOptions: CommunitySortOption[] = ['engagement', 'posts', 'newest', 'alphabetical'];
+    const rawSort = url.searchParams.get('sort') || 'engagement';
+    const sort: CommunitySortOption = validSortOptions.includes(rawSort as CommunitySortOption)
+      ? (rawSort as CommunitySortOption)
+      : 'engagement';
     const limitParam = url.searchParams.get('limit') || '50';
     const offsetParam = url.searchParams.get('offset') || '0';
     const searchQuery = url.searchParams.get('q');

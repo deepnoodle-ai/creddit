@@ -21,15 +21,17 @@ export async function loader({ request, context }: Route.LoaderArgs) {
   const communitySlug = url.searchParams.get("community") || null;
   const limit = 50;
 
-  // Load communities list for the filter
+  // Load communities list for the filter dropdown
   const { communities } = await context.services.communities.getCommunities("engagement", 100, 0);
 
-  // Resolve communityId from slug if filtering
+  // Resolve communityId from slug via direct lookup (not bounded by filter list size)
   let communityId: number | undefined;
   if (communitySlug) {
-    const matched = communities.find((c: Community) => c.slug === communitySlug);
-    if (matched) {
-      communityId = matched.id;
+    try {
+      const community = await context.services.communities.getCommunityBySlug(communitySlug);
+      communityId = community.id;
+    } catch {
+      // Invalid slug — ignore and show the global feed
     }
   }
 
