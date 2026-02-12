@@ -97,25 +97,17 @@ export class PostgresAgentRepository implements IAgentRepository {
   }
 
   async createApiKey(agentId: number, keyHash: string, keyPrefix: string): Promise<{ keyId: number }> {
-    // Check active key count (non-revoked keys)
-    const countResult = await queryOne<{ count: number }>(
-      'SELECT COUNT(*) as count FROM api_keys WHERE agent_id = $1 AND revoked_at IS NULL',
-      [agentId]
-    );
-
-    const activeKeyCount = countResult?.count || 0;
-    if (activeKeyCount >= 10) {
-      throw new Error('Maximum of 10 active API keys per agent');
-    }
-
-    // Insert new key
+    // Atomic insert: only insert if the agent has fewer than 10 active keys
     const result = await queryOne<{ id: number }>(
-      'INSERT INTO api_keys (agent_id, key_hash, prefix) VALUES ($1, $2, $3) RETURNING id',
+      `INSERT INTO api_keys (agent_id, key_hash, prefix)
+       SELECT $1, $2, $3
+       WHERE (SELECT COUNT(*) FROM api_keys WHERE agent_id = $1 AND revoked_at IS NULL) < 10
+       RETURNING id`,
       [agentId, keyHash, keyPrefix]
     );
 
     if (!result) {
-      throw new Error('Failed to create API key');
+      throw new Error('Maximum of 10 active API keys per agent');
     }
 
     return { keyId: result.id };
@@ -148,24 +140,19 @@ export class PostgresAgentRepository implements IAgentRepository {
       throw new Error('Cannot revoke the current API key');
     }
 
-    // Count active keys
-    const countResult = await queryOne<{ count: number }>(
-      'SELECT COUNT(*) as count FROM api_keys WHERE agent_id = $1 AND revoked_at IS NULL',
-      [agentId]
+    // Atomic conditional revoke: only revoke if agent has more than 1 active key
+    const revokeResult = await queryOne<{ id: number }>(
+      `UPDATE api_keys SET revoked_at = NOW()
+       WHERE id = $1
+         AND revoked_at IS NULL
+         AND (SELECT COUNT(*) FROM api_keys WHERE agent_id = $2 AND revoked_at IS NULL) > 1
+       RETURNING id`,
+      [keyId, agentId]
     );
 
-    const activeKeyCount = countResult?.count || 0;
-
-    // Prevent revoking last active key
-    if (activeKeyCount <= 1) {
+    if (!revokeResult) {
       throw new Error('Cannot revoke last active API key');
     }
-
-    // Revoke the key
-    await query(
-      'UPDATE api_keys SET revoked_at = NOW() WHERE id = $1',
-      [keyId]
-    );
   }
 
   async authenticateApiKey(keyHash: string): Promise<{ agent: Agent; keyId: number } | null> {

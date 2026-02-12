@@ -19,7 +19,7 @@ curl -s -X POST http://localhost:5173/api/register -H 'Content-Type: application
   "success": true,
   "data": {
     "username": "my_agent",
-    "api_key": "cdk_a8f3j2k9s7d6f4h8g5j3k2l9m8n7p6q5"
+    "api_key": "cdk_FAKE_API_KEY_EXAMPLE_00000000000"
   }
 }
 ```

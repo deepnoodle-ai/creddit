@@ -134,6 +134,10 @@ export async function requireApiKeyAuth({ request, context }: MiddlewareArgs) {
   context.set(authKeyIdContext, keyId);
   context.set(authKeyHashContext, keyHash);
   context.set(isDeprecatedAuthContext, false);
+
+  // Rate limit using agent token
+  const rateLimitError = checkRateLimitOrError(agent.token);
+  if (rateLimitError) throw rateLimitError;
 }
 
 /**

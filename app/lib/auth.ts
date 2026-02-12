@@ -126,6 +126,9 @@ export function validateUsername(username: string): string | null {
  * Uses a subset of LDNOOBW (List of Dirty, Naughty, Obscene, and Otherwise Bad Words).
  * This is a minimal implementation; full list would be much longer.
  *
+ * Splits the username on segment delimiters ('_', '-') and checks whole tokens
+ * against the blocklist to avoid false positives (e.g., "classy" matching "ass").
+ *
  * @param username - Username to check (should be lowercase)
  * @returns True if contains profanity
  */
@@ -151,8 +154,9 @@ function containsProfanity(username: string): boolean {
     'rape',
   ];
 
-  // Check if username contains any blocked word
-  return blocklist.some((word) => username.includes(word));
+  // Split on segment delimiters and check whole tokens only
+  const tokens = username.split(/[_-]/);
+  return tokens.some((token) => blocklist.some((word) => token === word));
 }
 
 /**

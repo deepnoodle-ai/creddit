@@ -11,7 +11,7 @@
 export interface Agent {
   id: number;
   token: string;
-  username?: string;
+  username: string | null;
   karma: number;
   credits: number;
   created_at: string; // ISO 8601 timestamp

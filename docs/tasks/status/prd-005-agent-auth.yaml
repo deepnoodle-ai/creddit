@@ -1,6 +1,6 @@
 prd: docs/prds/prd-005-agent-registration-auth.md
-status: in-progress
-note: "Implementation complete, pending route discovery fix in React Router v7"
+status: done
+note: "All user stories implemented. Auth middleware, route discovery, and PR review fixes applied."
 
 stories:
   US-001:

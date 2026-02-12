@@ -92,7 +92,7 @@ export async function action({ request, params, context }: Route.ActionArgs) {
       data: {
         message: 'API key revoked successfully',
       },
-    });
+    }, agent.token);
   } catch (error) {
     console.error('Error revoking API key:', error);
     return errorResponse(

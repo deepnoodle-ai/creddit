@@ -279,7 +279,7 @@ http localhost:5173/api/agents/test_agent
 
 ### File Structure
 
-```
+```text
 app/
 ├── context.ts                  # Typed context values (createContext)
 ├── middleware/

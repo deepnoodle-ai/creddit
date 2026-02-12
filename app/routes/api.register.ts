@@ -27,7 +27,7 @@ import {
  *   "success": true,
  *   "data": {
  *     "username": "my_agent",
- *     "api_key": "cdk_a8f3j2k9s7d6f4h8g5j3k2l9m8n7p6q5"
+ *     "api_key": "cdk_FAKE_API_KEY_EXAMPLE_00000000000"
  *   }
  * }
  *
@@ -49,8 +49,11 @@ export async function action({ request, context }: Route.ActionArgs) {
 
     const { username } = body;
 
-    // Validate username
-    const validationError = validateUsername(username);
+    // Normalize to lowercase before validation (per PRD, stored as lowercase)
+    const normalizedUsername = typeof username === 'string' ? username.toLowerCase() : username;
+
+    // Validate normalized username
+    const validationError = validateUsername(normalizedUsername);
     if (validationError) {
       return errorResponse('INVALID_USERNAME', validationError, null, 400);
     }
@@ -80,9 +83,6 @@ export async function action({ request, context }: Route.ActionArgs) {
     const apiKey = generateApiKey();
     const keyHash = await hashApiKey(apiKey);
     const keyPrefix = getApiKeyPrefix(apiKey);
-
-    // Convert username to lowercase for storage (per PRD)
-    const normalizedUsername = username.toLowerCase();
 
     // Register agent using repository
     const agentRepo = context.repositories.agents;
