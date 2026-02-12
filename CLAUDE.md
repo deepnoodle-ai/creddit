@@ -77,6 +77,11 @@ pnpm db:reset     # Reset database (destructive)
 **Note:** `.dev.vars` sets `DATABASE_URL` for wrangler dev. DB scripts
 (`db:migrate`, `db:seed`, etc.) use the shell `DATABASE_URL` instead.
 
+### Testing the API
+
+See `docs/development/api-testing.md` for curl examples, query parameters, and
+troubleshooting common issues (like curl multi-line formatting problems).
+
 ## Documentation
 
 All project documentation lives in `docs/` subdirectories with `kebab-case.md` naming:

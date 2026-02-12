@@ -13,7 +13,7 @@ Create concise, high-quality PRDs that align teams on **what** to build and **wh
 
 ### Step 1: Clarify
 
-Before writing, ask 3-5 essential clarifying questions where the user's prompt is ambiguous. Provide lettered options so users can respond quickly (e.g., "1A, 2C, 3B").
+Before writing, use the **AskUserQuestion tool** to gather essential information where the user's prompt is ambiguous. Ask 1-4 focused questions with 2-4 options each. The tool automatically adds an "Other" option for custom input.
 
 Focus questions on:
 - **Problem/Goal:** What problem does this solve? Why now?
@@ -22,22 +22,30 @@ Focus questions on:
 - **Scope/Boundaries:** What should it NOT do?
 - **Success criteria:** How do we know it worked?
 
-Format:
+Example questions:
 ```
-1. What is the primary goal?
-   A. Improve onboarding experience
-   B. Increase retention
-   C. Reduce support burden
-   D. Other: [please specify]
+Question: "What is the primary goal of this feature?"
+Options:
+- "Improve onboarding experience" - Make it easier for new users to get started
+- "Increase retention" - Keep existing users engaged
+- "Reduce support burden" - Decrease common support requests
 
-2. Who is the target user?
-   A. New users only
-   B. All users
-   C. Admin/power users
-   D. Other: [please specify]
+Question: "Who is the target user?"
+Options:
+- "New users only" - Optimized for first-time experience
+- "All users" - Benefits everyone
+- "Power users/admins" - Advanced functionality for experienced users
 ```
 
-Skip this step if the user provides enough detail upfront or explicitly asks to skip it.
+**When to ask questions:**
+- The user's prompt lacks key context (problem, users, scope, or success criteria)
+- You need to choose between multiple valid interpretations
+- Architectural decisions require user preference (e.g., scope, priorities, tradeoffs)
+
+**Skip this step if:**
+- The user provides comprehensive detail upfront
+- The user explicitly asks to skip clarification
+- You're reviewing an existing PRD (not creating a new one)
 
 ### Step 2: Generate the PRD
 
