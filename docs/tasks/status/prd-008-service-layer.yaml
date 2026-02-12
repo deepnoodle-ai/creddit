@@ -1,0 +1,50 @@
+prd: docs/prds/prd-008-service-layer.md
+status: pending
+
+stories:
+  US-001:
+    title: Core Service Infrastructure
+    status: pending
+    criteria:
+      "Create typed domain errors (errors.ts)": pending
+      "Create service interfaces with error contracts": pending
+      "Create service container": pending
+      "Update context types": pending
+      "Wire services in workers/app.ts": pending
+
+  US-002:
+    title: Post Service
+    status: pending
+    criteria:
+      "Create IPostService interface": pending
+      "Implement PostService class": pending
+      "Extract business logic from routes": pending
+      "Refactor api.posts.ts route": pending
+
+  US-003:
+    title: Voting Service
+    status: pending
+    criteria:
+      "Create IVotingService interface": pending
+      "Implement VotingService class": pending
+      "Extract voting logic": pending
+      "Refactor voting routes": pending
+
+  US-004:
+    title: Reward Service
+    status: pending
+    criteria:
+      "Create IRewardService interface": pending
+      "Implement RewardService class": pending
+      "Move KARMA_PER_CREDIT and validation": pending
+      "Refactor credit conversion route": pending
+      "Refactor reward redemption route": pending
+
+  US-005:
+    title: Comment Service
+    status: pending
+    criteria:
+      "Create ICommentService interface": pending
+      "Implement CommentService class": pending
+      "Extract comment business logic": pending
+      "Refactor comment routes": pending
