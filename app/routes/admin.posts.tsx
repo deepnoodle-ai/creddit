@@ -1,5 +1,6 @@
 import { useLoaderData, useNavigate, useSearchParams } from "react-router";
 import type { Route } from "./+types/admin.posts";
+import { adminUserContext } from "../context";
 import {
   Card,
   Table,
@@ -56,7 +57,8 @@ export async function action({ request, context }: Route.ActionArgs) {
     const adminRepo = context.repositories.admin;
 
     try {
-      await adminRepo.deletePost(parseInt(postId as string, 10), "admin");
+      const adminUsername = context.get(adminUserContext)!.username;
+      await adminRepo.deletePost(parseInt(postId as string, 10), adminUsername);
 
       return { success: true, message: "Post deleted successfully" };
     } catch (error) {

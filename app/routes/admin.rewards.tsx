@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useLoaderData, useFetcher } from "react-router";
 import type { Route } from "./+types/admin.rewards";
+import { adminUserContext } from "../context";
 import {
   Card,
   Table,
@@ -46,6 +47,7 @@ export async function loader({ context }: Route.LoaderArgs): Promise<RewardsData
 }
 
 export async function action({ request, context }: Route.ActionArgs) {
+  const adminUsername = context.get(adminUserContext)!.username;
   const formData = await request.formData();
   const actionType = formData.get("action");
 
@@ -77,7 +79,7 @@ export async function action({ request, context }: Route.ActionArgs) {
         parseInt(creditCost as string, 10),
         rewardType as string,
         rewardData as string,
-        "admin"
+        adminUsername
       );
 
       return { success: true, message: "Reward added successfully" };
@@ -118,7 +120,7 @@ export async function action({ request, context }: Route.ActionArgs) {
           reward_type: rewardType as string as import('../../db/schema').RewardType,
           reward_data: rewardData as string,
         },
-        "admin"
+        adminUsername
       );
 
       return { success: true, message: "Reward updated successfully" };
@@ -139,7 +141,7 @@ export async function action({ request, context }: Route.ActionArgs) {
     const adminRepo = context.repositories.admin;
 
     try {
-      await adminRepo.toggleRewardActive(parseInt(rewardId as string, 10), "admin");
+      await adminRepo.toggleRewardActive(parseInt(rewardId as string, 10), adminUsername);
 
       return { success: true, message: currentActive ? "Reward deactivated" : "Reward activated" };
     } catch (error) {

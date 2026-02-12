@@ -14,13 +14,12 @@
 
 -- Default admin user
 -- Password: admin123
--- Bcrypt hash (work factor 12): $2a$12$LQv3c1yqBWVHxkd0LHAkCOYz6TtxMQJqhN8/LewY5GyYs7P8P8P8P
--- NOTE: This is a placeholder hash. In production, use actual bcrypt hashing.
+-- Bcrypt hash (work factor 12) generated via bcryptjs
 INSERT OR IGNORE INTO admin_users (id, username, password_hash, created_at)
 VALUES (
   1,
   'admin',
-  '$2a$12$LQv3c1yqBWVHxkd0LHAkCOYz6TtxMQJqhN8/LewY5GyYs7P8P8P8P',
+  '$2b$12$.1vCfLLsuj4zD/UrobJ6v.WSHgo6PHaeot/EG1geSVn7TPzrq.G3i',
   '2026-02-10 00:00:00'
 );
 

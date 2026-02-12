@@ -20,5 +20,8 @@ export const authKeyHashContext = createContext<string | null>(null);
 /** Whether the request used deprecated agent_token auth */
 export const isDeprecatedAuthContext = createContext<boolean>(false);
 
+/** Authenticated admin user, set by admin layout middleware */
+export const adminUserContext = createContext<{ id: number; username: string } | null>(null);
+
 /** Pre-parsed request body (set by dual-auth middleware when reading body for agent_token) */
 export const parsedBodyContext = createContext<any>(null);

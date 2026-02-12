@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useLoaderData, useFetcher } from "react-router";
 import type { Route } from "./+types/admin.bans";
+import { adminUserContext } from "../context";
 import {
   Card,
   TextInput,
@@ -51,7 +52,7 @@ export async function action({ request, context }: Route.ActionArgs) {
 
     // Use repository interface
     const adminRepo = context.repositories.admin;
-    const adminUsername = "admin"; // TODO: Get from session
+    const adminUsername = context.get(adminUserContext)!.username;
 
     try {
       await adminRepo.banAgent({
@@ -75,7 +76,7 @@ export async function action({ request, context }: Route.ActionArgs) {
 
     // Use repository interface
     const adminRepo = context.repositories.admin;
-    const adminUsername = "admin"; // TODO: Get from session
+    const adminUsername = context.get(adminUserContext)!.username;
 
     try {
       await adminRepo.unbanAgent(banId as string, adminUsername);

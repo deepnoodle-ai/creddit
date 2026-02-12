@@ -13,6 +13,7 @@
 
 import type {
   Agent,
+  AdminUser,
   ApiKey,
   Post,
   Comment,
@@ -382,6 +383,16 @@ export interface PostsPageData {
  * Handles admin-specific operations like metrics, bans, and audit logs
  */
 export interface IAdminRepository {
+  /**
+   * Get an admin user by username
+   */
+  getAdminByUsername(username: string): Promise<AdminUser | null>;
+
+  /**
+   * Update the last_login_at timestamp for an admin user
+   */
+  updateLastLogin(adminId: number): Promise<void>;
+
   /**
    * Get dashboard metrics (totals)
    */

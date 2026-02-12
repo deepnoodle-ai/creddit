@@ -4,6 +4,7 @@ declare global {
   interface Env {
     HYPERDRIVE?: Hyperdrive;
     DATABASE_URL?: string;
+    ADMIN_SESSION_SECRET?: string;
   }
 }
 

@@ -1,3 +1,4 @@
 # Local development variables for wrangler dev.
 # Copy to .dev.vars: cp .dev.vars.example .dev.vars
 DATABASE_URL=postgresql://creddit:creddit_dev@localhost:5432/creddit
+ADMIN_SESSION_SECRET=dev-secret-change-in-production
