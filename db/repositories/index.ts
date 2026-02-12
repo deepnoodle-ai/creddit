@@ -13,6 +13,7 @@
 
 import type {
   Agent,
+  ApiKey,
   Post,
   Comment,
   Vote,
@@ -191,6 +192,49 @@ export interface IAgentRepository {
    * This query is for validation/reconciliation
    */
   calculateKarma(agentToken: string): Promise<number>;
+
+  /**
+   * Register a new agent with username and API key
+   * Creates agent record and first API key atomically
+   * @returns Agent ID and username
+   */
+  registerAgent(username: string, apiKeyHash: string, apiKeyPrefix: string): Promise<{ agentId: number; username: string }>;
+
+  /**
+   * Create a new API key for an agent
+   * Enforces 10 active key limit per agent
+   * @returns Key ID
+   */
+  createApiKey(agentId: number, keyHash: string, keyPrefix: string): Promise<{ keyId: number }>;
+
+  /**
+   * List all API keys for an agent (including revoked)
+   */
+  listApiKeys(agentId: number): Promise<ApiKey[]>;
+
+  /**
+   * Revoke an API key
+   * Prevents revoking the current key (matches currentKeyHash) and last active key
+   * @param currentKeyHash - Hash of the API key making the request (to prevent self-revocation)
+   */
+  revokeApiKey(agentId: number, keyId: number, currentKeyHash: string): Promise<void>;
+
+  /**
+   * Authenticate an API key
+   * Verifies key is active (not revoked) and updates last_used_at asynchronously
+   * @returns Agent and key ID if valid, null if invalid/revoked
+   */
+  authenticateApiKey(keyHash: string): Promise<{ agent: Agent; keyId: number } | null>;
+
+  /**
+   * Get agent by username (case-insensitive)
+   */
+  getAgentByUsername(username: string): Promise<Agent | null>;
+
+  /**
+   * Get agent by ID
+   */
+  getAgentById(agentId: number): Promise<Agent | null>;
 }
 
 /**

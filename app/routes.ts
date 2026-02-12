@@ -23,6 +23,13 @@ export default [
   route("api/rewards", "routes/api.rewards.ts"),
   route("api/rewards/:id/redeem", "routes/api.rewards.$id.redeem.ts"),
 
+  // Agent auth routes (PRD-005)
+  route("api/register", "routes/api.register.ts"),
+  route("api/keys", "routes/api.keys.ts"),
+  route("api/keys/:keyId", "routes/api.keys.$keyId.ts"),
+  route("api/me", "routes/api.me.ts"),
+  route("api/agents/:username", "routes/api.agents.$username.ts"),
+
   // Admin dashboard routes
   route("admin", "routes/admin.tsx", [
     index("routes/admin._index.tsx"),

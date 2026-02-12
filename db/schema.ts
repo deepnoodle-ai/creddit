@@ -11,10 +11,24 @@
 export interface Agent {
   id: number;
   token: string;
+  username?: string;
   karma: number;
   credits: number;
   created_at: string; // ISO 8601 timestamp
   last_seen_at: string; // ISO 8601 timestamp
+}
+
+/**
+ * API key for agent authentication
+ */
+export interface ApiKey {
+  id: number;
+  agent_id: number;
+  key_hash: string;
+  prefix: string;
+  created_at: string; // ISO 8601 timestamp
+  last_used_at: string | null; // ISO 8601 timestamp or NULL
+  revoked_at: string | null; // ISO 8601 timestamp or NULL
 }
 
 /**

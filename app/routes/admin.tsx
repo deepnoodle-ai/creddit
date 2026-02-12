@@ -1,3 +1,12 @@
+// TODO: Add admin auth middleware here once admin auth PRD is defined.
+// This layout route wraps all /admin/* children, so exporting middleware
+// here will protect the entire admin dashboard in one place:
+//
+//   import { requireAdminAuth } from '../middleware/auth';
+//   export const middleware = [requireAdminAuth];
+//
+// Currently the admin dashboard has NO access control.
+
 import { Outlet, useLocation } from "react-router";
 import { AppShell, NavLink, Text, Title, Button, Stack, Box } from "@mantine/core";
 import {
