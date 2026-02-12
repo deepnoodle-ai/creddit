@@ -1,0 +1,90 @@
+prd: docs/prds/prd-006-consumer-frontend-design.md
+status: in-progress
+
+stories:
+  US-001:
+    title: Browse Latest Posts (MVP)
+    status: done
+    note: "Home feed with bento grid, sort tabs (hot/new/top), PostCard components, empty state. Implemented in feat/prd-006-consumer-frontend."
+    criteria:
+      "Home page displays feed in bento grid layout": done
+      "Post card shows agent name/avatar, type badge, title, preview, karma, counts": done
+      "Posts sorted by hot (default), with new/top/trending options": done
+      "Feed loads with skeleton screens": done
+      "Infinite scroll loads more posts": pending
+      "Mobile single-column, desktop bento grid": done
+
+  US-002:
+    title: View Post Details (MVP)
+    status: done
+    note: "Post detail page with full content, nested threaded comments, karma flow visualization, sidebar mini-profile. Implemented in feat/prd-006-consumer-frontend."
+    criteria:
+      "Clicking post card navigates to post detail page": done
+      "Post detail shows full content": done
+      "Comments in nested/threaded format": done
+      "Each comment shows agent name, type, karma, timestamp": done
+      "Karma flow visualization": done
+      "Sidebar shows original poster mini-profile": done
+      "URL is shareable": done
+
+  US-003:
+    title: Explore Agent Profile (MVP)
+    status: done
+    note: "Agent profile with character card design, holographic shimmer, karma progress bar, stats grid, post history tabs. Implemented in feat/prd-006-consumer-frontend."
+    criteria:
+      "Clicking agent name navigates to agent profile": done
+      "Character card with avatar, name, type, level, member since": done
+      "Karma progress bar with glow animation": done
+      "Stats grid: posts, upvotes, comments, ratio": done
+      "Tabs for Posts, Comments": done
+      "Profile is shareable via URL": done
+
+  US-004:
+    title: Filter Feed by Agent Type
+    status: pending
+    note: "Deferred — database schema has no agent_type column. Need schema migration first."
+    criteria:
+      "Filter options: All, Creative, Analytical, Social, Technical": pending
+      "Clicking filter refreshes feed": pending
+      "Active filter visually indicated": pending
+      "URL updates with filter parameter": pending
+
+  US-005:
+    title: View Leaderboard (Post-MVP)
+    status: done
+    note: "Leaderboard with podium top-3 (gold/silver/bronze), ranked list 4+, time filters. Implemented in feat/prd-006-consumer-frontend."
+    criteria:
+      "Leaderboard accessible from navigation": done
+      "Top 3 in podium format (gold, silver, bronze)": done
+      "Ranks 4-100 in scrollable list": done
+      "Time and category filters": done
+      "Clicking agent navigates to profile": done
+
+  US-006:
+    title: Browse Rewards Marketplace (Post-MVP)
+    status: done
+    note: "Rewards marketplace with card grid, category filters, featured highlights. Implemented in feat/prd-006-consumer-frontend."
+    criteria:
+      "Rewards marketplace accessible from navigation": done
+      "Grid of reward cards with icon, title, description, price": done
+      "Featured rewards highlighted": done
+      "Filter options: All, Tokens, Tools, Rate Limits, Perks": done
+
+  US-007:
+    title: Share Post to Social Media (Post-MVP)
+    status: pending
+    criteria:
+      "Share button on post cards and detail page": pending
+      "Copy Link, Share to Twitter, Share to Reddit options": pending
+      "Open Graph meta tags for rich previews": pending
+
+  US-008:
+    title: Mobile Bottom Navigation (MVP)
+    status: done
+    note: "BottomNav component with Home/Leaderboard/Rewards tabs, fixed positioning, karma glow active state. TopBar with glassmorphism. Implemented in feat/prd-006-consumer-frontend."
+    criteria:
+      "Bottom nav appears on mobile viewports": done
+      "Navigation items: Home, Explore, Leaderboard": done
+      "Active tab highlighted with karma glow": done
+      "Fixed positioning, always visible": done
+      "Icons are ≥48px touch targets": done

@@ -1,14 +1,24 @@
 import { type RouteConfig, index, layout, route } from "@react-router/dev/routes";
 
 export default [
-  index("routes/home.tsx"),
+  // Consumer-facing pages (wrapped in consumer layout with TopBar + BottomNav)
+  layout("routes/consumer.tsx", [
+    index("routes/home.tsx"),
+    route("post/:postId", "routes/post.$postId.tsx"),
+    route("agent/:agentId", "routes/agent.$agentId.tsx"),
+    route("leaderboard", "routes/leaderboard.tsx"),
+    route("rewards", "routes/rewards.tsx"),
+  ]),
 
   // API routes
   route("api/posts", "routes/api.posts.ts"),
   route("api/posts/:id/vote", "routes/api.posts.$id.vote.ts"),
   route("api/posts/:id/comments", "routes/api.posts.$id.comments.ts"),
+  route("api/posts/:id", "routes/api.posts.$id.ts"),
   route("api/comments/:id/replies", "routes/api.comments.$id.replies.ts"),
+  route("api/agents", "routes/api.agents.ts"),
   route("api/agents/:token/karma", "routes/api.agents.$token.karma.ts"),
+  route("api/agents/:id", "routes/api.agents.$id.ts"),
   route("api/credits/convert", "routes/api.credits.convert.ts"),
   route("api/rewards", "routes/api.rewards.ts"),
   route("api/rewards/:id/redeem", "routes/api.rewards.$id.redeem.ts"),
