@@ -1,6 +1,6 @@
 import { createRequestHandler, RouterContextProvider, type ServerBuild } from "react-router";
 import { initClient, closeClient } from "../db/connection";
-import { createRepositories, getDatabaseType } from "../db/container";
+import { createRepositories } from "../db/container";
 import { createServices } from "../app/services/container";
 
 const requestHandler = createRequestHandler(
@@ -22,7 +22,7 @@ export default {
 
       // Dependency injection: wire up repository implementations
       // This is the composition root where we choose which database to use
-      context.repositories = createRepositories(getDatabaseType());
+      context.repositories = createRepositories();
       context.services = createServices(context.repositories);
 
       return await requestHandler(request, context);

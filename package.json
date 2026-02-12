@@ -13,9 +13,8 @@
     "docker:up": "docker-compose up -d",
     "docker:down": "docker-compose down",
     "docker:logs": "docker-compose logs -f postgres",
-    "db:migrate": "psql $DATABASE_URL -f ./db/migrations-postgres/0001_initial_schema.sql && psql $DATABASE_URL -f ./db/migrations-postgres/0003_admin_tables.sql && psql $DATABASE_URL -f ./db/migrations-postgres/0005_agent_auth.sql && psql $DATABASE_URL -f ./db/migrations-postgres/0006_communities.sql",
-    "db:seed": "psql $DATABASE_URL -f ./db/migrations-postgres/0002_seed_data.sql && psql $DATABASE_URL -f ./db/migrations-postgres/0004_seed_admin_user.sql",
-    "db:setup": "pnpm run db:migrate && pnpm run db:seed",
+    "db:migrate": "psql $DATABASE_URL -f ./db/migrations/0001_schema.sql",
+    "db:setup": "pnpm run db:migrate",
     "db:reset": "psql $DATABASE_URL -c 'DROP SCHEMA public CASCADE; CREATE SCHEMA public;'",
     "db:psql": "psql $DATABASE_URL"
   },
