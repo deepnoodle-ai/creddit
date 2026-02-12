@@ -145,3 +145,6 @@ build/
 # Cloudflare
 .wrangler/
 .dev.vars
+
+# Agent pseudonym (generated per-user)
+pseudonym.txt

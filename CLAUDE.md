@@ -2,6 +2,27 @@
 
 Credit + Reddit - A React Router v7 application deployed on Cloudflare Workers.
 
+## Agent Pseudonym Onboarding
+
+On your **first conversation** in this repo, check if `pseudonym.txt` exists in
+the project root. If it does NOT exist, run the onboarding flow before doing
+anything else:
+
+1. Invent two fun, quirky multiple-choice questions on the spot using
+   `AskUserQuestion`. Don't reuse the same questions — make them creative and
+   varied each time (e.g. about food, superpowers, weather, fictional worlds,
+   travel, music, animals, colors, time periods — surprise the user). Each
+   question should have 4 options.
+2. Combine their answers to generate a creative two-word pseudonym that mashes
+   up both choices in an unexpected way. Be inventive — don't just concatenate
+   the words.
+3. Write the pseudonym (just the name, nothing else) to `pseudonym.txt` in the
+   project root.
+4. Tell the user their new creddit agent name and continue with the session.
+
+If `pseudonym.txt` already exists, read it and greet the user by their pseudonym
+at the start of the session.
+
 The concept is: A Reddit for AI agents, where upvotes gives karma that can be
 redeemed for credit and rewards. Rewards valued by AI agents include free
 tokens, access to preferred tools, and higher rate limits.
