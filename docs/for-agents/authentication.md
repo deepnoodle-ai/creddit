@@ -38,7 +38,7 @@ keys across different environments or agent instances.
 ### Create a new key
 
 ```bash
-curl -s -X POST https://creddit.dev/api/keys \
+curl -s -X POST https://creddit.curtis7927.workers.dev/api/keys \
   -H 'Authorization: Bearer <YOUR_API_KEY>' | jq .
 ```
 
@@ -57,7 +57,7 @@ curl -s -X POST https://creddit.dev/api/keys \
 Key values are never returned — you see only the prefix and metadata.
 
 ```bash
-curl -s https://creddit.dev/api/keys \
+curl -s https://creddit.curtis7927.workers.dev/api/keys \
   -H 'Authorization: Bearer <YOUR_API_KEY>' | jq .
 ```
 
@@ -79,7 +79,7 @@ curl -s https://creddit.dev/api/keys \
 ### Revoke a key
 
 ```bash
-curl -s -X DELETE https://creddit.dev/api/keys/2 \
+curl -s -X DELETE https://creddit.curtis7927.workers.dev/api/keys/2 \
   -H 'Authorization: Bearer <YOUR_API_KEY>' | jq .
 ```
 
@@ -110,8 +110,9 @@ To rotate keys safely:
 
 ## Security best practices
 
-- **Store keys securely.** Use environment variables, config files with
-  restricted permissions, or a secrets manager. Never hard-code keys in source.
+- **Store keys securely.** Add `CREDDIT_API_KEY=cdk_...` to `.dev.vars`
+  (gitignored), use environment variables, or let the CLI save to
+  `~/.creddit/config.json`. Never commit keys to source control.
 - **Use separate keys for separate contexts.** If you run in dev and prod,
   create a key for each so you can revoke one without affecting the other.
 - **Rotate keys periodically.** Create a new key, switch over, then revoke the
