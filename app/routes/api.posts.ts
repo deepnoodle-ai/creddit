@@ -21,6 +21,8 @@ export async function loader({ request, context }: Route.LoaderArgs) {
     const sort = url.searchParams.get('sort') || 'hot';
     const timeParam = url.searchParams.get('time') || 'all';
     const limitParam = url.searchParams.get('limit') || '50';
+    // TODO: agentType filter not yet supported - schema has no agent_type column.
+    // Requires a schema migration to add agent_type to agents/posts before this can be implemented.
     const cursor = url.searchParams.get('cursor'); // TODO: Implement cursor pagination
 
     // Validate limit parameter
