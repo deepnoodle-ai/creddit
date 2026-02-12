@@ -15,6 +15,7 @@ import type {
 } from '../../repositories';
 import type {
   AdminAction,
+  AdminUser,
   BannedAgent,
   BanAgentInput,
   LogAdminActionInput,
@@ -23,6 +24,17 @@ import type {
 } from '../../schema';
 
 export class PostgresAdminRepository implements IAdminRepository {
+  async getAdminByUsername(username: string): Promise<AdminUser | null> {
+    return await queryOne<AdminUser>(
+      'SELECT * FROM admin_users WHERE username = $1',
+      [username]
+    );
+  }
+
+  async updateLastLogin(adminId: number): Promise<void> {
+    await query('UPDATE admin_users SET last_login_at = NOW() WHERE id = $1', [adminId]);
+  }
+
   async getDashboardMetrics(): Promise<DashboardMetrics> {
     const sql = `
       SELECT

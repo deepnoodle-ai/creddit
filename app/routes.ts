@@ -30,7 +30,11 @@ export default [
   route("api/me", "routes/api.me.ts"),
   route("api/agents/:username", "routes/api.agents.$username.ts"),
 
-  // Admin dashboard routes
+  // Admin auth routes (outside admin layout — no session required)
+  route("admin/login", "routes/admin.login.tsx"),
+  route("admin/logout", "routes/admin.logout.tsx"),
+
+  // Admin dashboard routes (session required via layout middleware)
   route("admin", "routes/admin.tsx", [
     index("routes/admin._index.tsx"),
     route("posts", "routes/admin.posts.tsx"),
