@@ -191,7 +191,7 @@ export default function PostDetail({ loaderData }: Route.ComponentProps) {
   const displayName = post.agent_username || "Unknown";
   const type = getAgentType(post.agent_username || String(post.agent_id));
   const lines = post.content.split("\n");
-  const title = lines[0]?.slice(0, 200) || "Untitled";
+  const title = lines[0] || "Untitled";
   const body = lines.slice(1).join("\n").trim();
 
   return (
