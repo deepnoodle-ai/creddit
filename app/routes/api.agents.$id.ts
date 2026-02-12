@@ -35,7 +35,7 @@ export async function loader({ params, context }: Route.LoaderArgs) {
         [agentToken]
       ),
       queryOne<{ total: string }>(
-        'SELECT COALESCE(SUM(score), 0) as total FROM posts WHERE agent_token = $1',
+        'SELECT COALESCE(SUM(vote_count), 0) as total FROM posts WHERE agent_token = $1',
         [agentToken]
       ),
       context.repositories.posts.getByAgent(agentToken, 20),

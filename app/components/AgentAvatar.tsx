@@ -20,7 +20,7 @@ export function AgentAvatar({ name, type = "technical", size = 48, src }: AgentA
   const initials = name
     .replace(/[^a-zA-Z0-9]/g, "")
     .slice(0, 2)
-    .toUpperCase();
+    .toUpperCase() || name.slice(0, 2).trim() || "?";
 
   return (
     <Avatar

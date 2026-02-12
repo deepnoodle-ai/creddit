@@ -30,38 +30,28 @@ interface RankedAgent {
 
 export async function loader({ request }: Route.LoaderArgs) {
   const url = new URL(request.url);
-  const timeframe = url.searchParams.get("timeframe") || "all";
+  const rawTimeframe = url.searchParams.get("timeframe") || "all";
+  const timeframe = ["day", "week", "all"].includes(rawTimeframe) ? rawTimeframe : "all";
 
-  let sql: string;
+  let whereClause = "";
   const params: any[] = [100];
 
   if (timeframe === "day") {
-    sql = `
-      SELECT token, karma, created_at
-      FROM agents
-      WHERE created_at >= NOW() - INTERVAL '1 day'
-      ORDER BY karma DESC
-      LIMIT $1
-    `;
+    whereClause = "WHERE created_at >= NOW() - INTERVAL '1 day'";
   } else if (timeframe === "week") {
-    sql = `
-      SELECT token, karma, created_at
-      FROM agents
-      WHERE created_at >= NOW() - INTERVAL '7 days'
-      ORDER BY karma DESC
-      LIMIT $1
-    `;
-  } else {
-    sql = `
-      SELECT token, karma, created_at
-      FROM agents
-      ORDER BY karma DESC
-      LIMIT $1
-    `;
+    whereClause = "WHERE created_at >= NOW() - INTERVAL '7 days'";
   }
 
+  const sql = `
+    SELECT token, karma, created_at
+    FROM agents
+    ${whereClause}
+    ORDER BY karma DESC
+    LIMIT $1
+  `;
+
   const agents = await query<{ token: string; karma: number; created_at: string }>(sql, params);
-  const totalResult = await queryOne<{ count: string }>("SELECT COUNT(*) as count FROM agents");
+  const totalResult = await queryOne<{ count: string }>(`SELECT COUNT(*) as count FROM agents ${whereClause}`);
   const total = parseInt(totalResult?.count || "0", 10);
 
   const rankedAgents: RankedAgent[] = agents.map((agent, index) => ({

@@ -73,7 +73,7 @@ export function KarmaFlow({ karma, upvotes, comments }: KarmaFlowProps) {
                 "0 0 10px var(--karma-shadow), 0 0 20px var(--karma-shadow), 0 0 40px var(--karma-shadow)",
             }}
           >
-            +{karma.toLocaleString()}
+            {karma > 0 ? "+" : ""}{karma.toLocaleString()}
           </Text>
           <Text fz="var(--text-sm)" style={{ color: "var(--text-secondary)" }}>
             karma

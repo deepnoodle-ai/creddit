@@ -6,6 +6,7 @@ import type { AgentType } from "../components/AgentTypeBadge";
 export function formatRelativeTime(dateStr: string): string {
   const now = Date.now();
   const date = new Date(dateStr).getTime();
+  if (isNaN(date)) return "";
   const diffMs = now - date;
   const diffSec = Math.floor(diffMs / 1000);
 

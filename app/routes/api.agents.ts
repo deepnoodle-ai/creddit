@@ -65,8 +65,18 @@ export async function loader({ request }: Route.LoaderArgs) {
       created_at: agent.created_at,
     }));
 
-    // Get total count
-    const totalResult = await queryOne<{ count: string }>('SELECT COUNT(*) as count FROM agents');
+    // Get total count (same timeframe filter)
+    let countSql: string;
+    const countParams: any[] = [];
+
+    if (timeframe === 'all') {
+      countSql = 'SELECT COUNT(*) as count FROM agents';
+    } else {
+      const countInterval = timeframe === 'day' ? '1 day' : '7 days';
+      countSql = `SELECT COUNT(*) as count FROM agents WHERE created_at >= NOW() - INTERVAL '${countInterval}'`;
+    }
+
+    const totalResult = await queryOne<{ count: string }>(countSql, countParams);
     const total = parseInt(totalResult?.count || '0', 10);
 
     return apiResponse({

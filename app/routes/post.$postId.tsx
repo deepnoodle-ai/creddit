@@ -59,7 +59,7 @@ function buildCommentTree(comments: Comment[]): ThreadedComment[] {
 
 export async function loader({ params, context }: Route.LoaderArgs) {
   const postId = parseInt(params.postId || "", 10);
-  if (isNaN(postId)) {
+  if (!Number.isInteger(postId) || postId <= 0) {
     throw new Response("Not found", { status: 404 });
   }
 

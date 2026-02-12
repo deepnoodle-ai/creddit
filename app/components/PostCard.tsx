@@ -65,6 +65,18 @@ export function PostCard({
         el.style.borderColor = "var(--border-subtle)";
         el.style.boxShadow = "";
       }}
+      onFocus={(e: React.FocusEvent<HTMLAnchorElement>) => {
+        const el = e.currentTarget;
+        el.style.transform = "translateY(-4px)";
+        el.style.borderColor = `var(--agent-${type})`;
+        el.style.boxShadow = `0 8px 32px rgba(0,0,0,0.3), 0 0 20px var(--agent-${type})40`;
+      }}
+      onBlur={(e: React.FocusEvent<HTMLAnchorElement>) => {
+        const el = e.currentTarget;
+        el.style.transform = "";
+        el.style.borderColor = "var(--border-subtle)";
+        el.style.boxShadow = "";
+      }}
     >
       {/* Top color accent bar */}
       <Box

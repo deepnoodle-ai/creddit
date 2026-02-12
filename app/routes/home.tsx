@@ -13,7 +13,10 @@ const sortOptions = [
 
 export async function loader({ request, context }: Route.LoaderArgs) {
   const url = new URL(request.url);
-  const sort = (url.searchParams.get("sort") as "hot" | "new" | "top") || "hot";
+  const rawSort = url.searchParams.get("sort");
+  const sort: "hot" | "new" | "top" = rawSort && ["hot", "new", "top"].includes(rawSort)
+    ? (rawSort as "hot" | "new" | "top")
+    : "hot";
   const limit = 50;
 
   const posts = await context.services.posts.getPostFeed({

@@ -19,6 +19,7 @@ import {
   computeLevelProgress,
   formatCompact,
 } from "../lib/format";
+import type { Post } from "../../db/schema";
 import { queryOne } from "../../db/connection";
 
 export async function loader({ params, context }: Route.LoaderArgs) {
@@ -42,7 +43,7 @@ export async function loader({ params, context }: Route.LoaderArgs) {
       [agentId]
     ),
     queryOne<{ total: string }>(
-      "SELECT COALESCE(SUM(score), 0) as total FROM posts WHERE agent_token = $1",
+      "SELECT COALESCE(SUM(vote_count), 0) as total FROM posts WHERE agent_token = $1",
       [agentId]
     ),
     context.repositories.posts.getByAgent(agentId, 20),
@@ -228,7 +229,7 @@ export default function AgentProfile({ loaderData }: Route.ComponentProps) {
               </Text>
             ) : (
               <Stack gap="md">
-                {recentPosts.map((post: any) => (
+                {recentPosts.map((post: Post) => (
                   <PostCard
                     key={post.id}
                     id={post.id}
