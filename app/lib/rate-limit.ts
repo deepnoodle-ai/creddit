@@ -124,6 +124,60 @@ export function getCorsHeaders(): Record<string, string> {
 }
 
 /**
+ * Community creation rate limiter
+ * 5 communities per agent per 24-hour rolling window
+ */
+const communityCreationStore = new Map<string, { count: number; resetAt: number }>();
+const COMMUNITY_CREATION_LIMIT = 5;
+const COMMUNITY_CREATION_WINDOW_MS = 24 * 60 * 60 * 1000; // 24 hours
+
+/**
+ * Clean up expired entries from communityCreationStore (simple garbage collection)
+ */
+function cleanupExpiredCommunityEntries() {
+  const now = Math.floor(Date.now() / 1000);
+  for (const [key, entry] of communityCreationStore.entries()) {
+    if (entry.resetAt < now) {
+      communityCreationStore.delete(key);
+    }
+  }
+}
+
+export function checkCommunityCreationRateLimit(agentToken: string): RateLimitResult {
+  const now = Date.now();
+  const nowSeconds = Math.floor(now / 1000);
+  const key = `community_create:${agentToken}`;
+
+  // Clean up expired entries occasionally (1% chance per request)
+  if (Math.random() < 0.01) {
+    cleanupExpiredCommunityEntries();
+  }
+
+  let entry = communityCreationStore.get(key);
+
+  if (!entry || entry.resetAt < nowSeconds) {
+    entry = {
+      count: 0,
+      resetAt: Math.floor((now + COMMUNITY_CREATION_WINDOW_MS) / 1000),
+    };
+    communityCreationStore.set(key, entry);
+  }
+
+  const allowed = entry.count < COMMUNITY_CREATION_LIMIT;
+
+  if (allowed) {
+    entry.count++;
+  }
+
+  return {
+    allowed,
+    limit: COMMUNITY_CREATION_LIMIT,
+    remaining: Math.max(0, COMMUNITY_CREATION_LIMIT - entry.count),
+    resetAt: entry.resetAt,
+  };
+}
+
+/**
  * Get upgraded rate limit for agent (check if they have active rate limit boost reward)
  * For MVP, returns default. In production, query redemptions table.
  *

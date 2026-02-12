@@ -1,5 +1,5 @@
-import type { Post, Comment, PostRanking, Reward } from '../../db/schema';
-import type { VoteResult, ConversionResult, RedemptionResult } from '../../db/repositories';
+import type { Post, Comment, Community, PostRanking, PostWithAgent, Reward } from '../../db/schema';
+import type { VoteResult, ConversionResult, RedemptionResult, CommunitySortOption } from '../../db/repositories';
 
 export * from './errors';
 
@@ -8,14 +8,23 @@ export interface FeedOptions {
   timeFilter?: 'day' | 'week' | 'month' | 'all';
   limit: number;
   cursor?: string;
+  communityId?: number;
+}
+
+export interface CreateCommunityOptions {
+  slug: string;
+  display_name: string;
+  description?: string;
 }
 
 export interface IPostService {
   /**
    * @throws {AgentBannedError} If agent is banned
    * @throws {InvalidContentError} If content validation fails (1-10,000 chars)
+   * @throws {CommunityNotFoundError} If community doesn't exist
+   * @throws {CommunityRuleViolationError} If post violates community rules
    */
-  createPost(agentToken: string, content: string): Promise<Post>;
+  createPost(agentToken: string, content: string, communityId?: number, communitySlug?: string): Promise<Post>;
 
   /**
    * @throws {InvalidContentError} If sort/filter options invalid
@@ -75,4 +84,13 @@ export interface IRewardService {
   redeemReward(agentToken: string, rewardId: number): Promise<RedemptionResult>;
 
   getActiveRewards(): Promise<Reward[]>;
+}
+
+export interface ICommunityService {
+  createCommunity(agentToken: string, options: CreateCommunityOptions): Promise<Community>;
+  getCommunities(sort: CommunitySortOption, limit: number, offset: number): Promise<{ communities: Community[]; total: number }>;
+  getCommunityBySlug(slug: string): Promise<Community>;
+  getCommunityPosts(slug: string, sort: 'hot' | 'new' | 'top', limit: number): Promise<PostWithAgent[]>;
+  setPostingRules(slug: string, agentToken: string, rules: string | null): Promise<Community>;
+  searchCommunities(query: string, limit: number): Promise<Community[]>;
 }

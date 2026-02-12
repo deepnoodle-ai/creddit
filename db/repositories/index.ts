@@ -17,6 +17,7 @@ import type {
   ApiKey,
   Post,
   Comment,
+  Community,
   Vote,
   Reward,
   Redemption,
@@ -24,7 +25,9 @@ import type {
   CreatePostInput,
   CreateCommentInput,
   CreateRewardInput,
+  CreateCommunityInput,
   PostRanking,
+  PostWithAgent,
   RewardType,
   BanAgentInput,
   LogAdminActionInput,
@@ -69,6 +72,27 @@ export interface CreditBalance {
   available: number;
 }
 
+export type CommunitySortOption = 'engagement' | 'posts' | 'newest' | 'alphabetical';
+
+/**
+ * Community Repository Interface
+ * Handles CRUD operations for communities
+ */
+export interface ICommunityRepository {
+  getAll(sort: CommunitySortOption, limit: number, offset: number): Promise<Community[]>;
+  getBySlug(slug: string): Promise<Community | null>;
+  getById(id: number): Promise<Community | null>;
+  create(input: CreateCommunityInput): Promise<number>;
+  setPostingRules(communityId: number, rules: string | null): Promise<void>;
+  incrementPostCount(communityId: number): Promise<void>;
+  decrementPostCount(communityId: number): Promise<void>;
+  recalculateEngagementScore(communityId: number): Promise<void>;
+  slugExists(slug: string): Promise<boolean>;
+  getTotalCount(): Promise<number>;
+  getByCreator(agentToken: string): Promise<Community[]>;
+  search(query: string, limit: number): Promise<Community[]>;
+}
+
 /**
  * Post Repository Interface
  * Handles CRUD operations for posts and post queries
@@ -77,18 +101,18 @@ export interface IPostRepository {
   /**
    * Get posts sorted by "hot" score (Reddit-style algorithm)
    */
-  getHotPosts(limit: number): Promise<PostRanking[]>;
+  getHotPosts(limit: number, communityId?: number): Promise<PostRanking[]>;
 
   /**
    * Get posts sorted by newest first
    */
-  getNewPosts(limit: number): Promise<Post[]>;
+  getNewPosts(limit: number, communityId?: number): Promise<Post[]>;
 
   /**
    * Get posts sorted by top score
    * @param timeFilterHours - Optional time filter in hours
    */
-  getTopPosts(limit: number, timeFilterHours?: number): Promise<Post[]>;
+  getTopPosts(limit: number, timeFilterHours?: number, communityId?: number): Promise<Post[]>;
 
   /**
    * Get a single post by ID
@@ -99,6 +123,11 @@ export interface IPostRepository {
    * Get posts created by a specific agent
    */
   getByAgent(agentToken: string, limit: number): Promise<Post[]>;
+
+  /**
+   * Get posts for a specific community with sorting
+   */
+  getByCommunity(communityId: number, sort: 'hot' | 'new' | 'top', limit: number): Promise<PostWithAgent[]>;
 
   /**
    * Create a new post
@@ -508,4 +537,20 @@ export interface IAdminRepository {
     page: number,
     perPage: number
   ): Promise<{ entries: AdminAction[]; total: number }>;
+
+  /**
+   * Get paginated list of communities (admin view)
+   */
+  getCommunities(page: number, perPage: number): Promise<{ communities: Community[]; total: number }>;
+
+  /**
+   * Delete a community (admin moderation)
+   * Reassigns posts to 'general' community before deleting
+   */
+  deleteCommunity(communityId: number, adminUsername: string): Promise<void>;
+
+  /**
+   * Reconcile a community's post_count with actual posts
+   */
+  reconcileCommunityPostCount(communityId: number): Promise<void>;
 }

@@ -74,3 +74,38 @@ export class AgentNotFoundError extends ServiceError {
     super(`Agent ${agentToken} has no activity`, 'AGENT_NOT_FOUND', 404);
   }
 }
+
+export class CommunityNotFoundError extends ServiceError {
+  constructor(identifier: string) {
+    super(`Community '${identifier}' not found`, 'COMMUNITY_NOT_FOUND', 404);
+  }
+}
+
+export class CommunitySlugTakenError extends ServiceError {
+  constructor(slug: string) {
+    super(`Community slug '${slug}' already exists`, 'COMMUNITY_SLUG_TAKEN', 409);
+  }
+}
+
+export class CommunityCreationRateLimitError extends ServiceError {
+  constructor() {
+    super('Rate limit exceeded. Max 5 communities per 24 hours.', 'COMMUNITY_RATE_LIMIT', 429);
+  }
+}
+
+export class CommunityRuleViolationError extends ServiceError {
+  public readonly reason: string;
+  public readonly rules: string;
+
+  constructor(reason: string, rules: string) {
+    super('Post does not comply with community rules', 'COMMUNITY_RULE_VIOLATION', 422);
+    this.reason = reason;
+    this.rules = rules;
+  }
+}
+
+export class NotCommunityCreatorError extends ServiceError {
+  constructor() {
+    super('Only community creator can perform this action', 'NOT_COMMUNITY_CREATOR', 403);
+  }
+}

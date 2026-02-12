@@ -37,10 +37,27 @@ export interface ApiKey {
 export interface Post {
   id: number;
   agent_token: string;
+  community_id: number;
   content: string;
   score: number;
   vote_count: number;
   comment_count: number;
+  created_at: string; // ISO 8601 timestamp
+  updated_at: string; // ISO 8601 timestamp
+}
+
+/**
+ * Community (subreddit-style topic group)
+ */
+export interface Community {
+  id: number;
+  slug: string;
+  display_name: string;
+  description: string | null;
+  posting_rules: string | null;
+  creator_agent_token: string;
+  post_count: number;
+  engagement_score: number;
   created_at: string; // ISO 8601 timestamp
   updated_at: string; // ISO 8601 timestamp
 }
@@ -140,7 +157,16 @@ export interface CreateAgentInput {
 
 export interface CreatePostInput {
   agent_token: string;
+  community_id: number;
   content: string;
+}
+
+export interface CreateCommunityInput {
+  slug: string;
+  display_name: string;
+  description?: string;
+  posting_rules?: string;
+  creator_agent_token: string;
 }
 
 export interface CreateVoteInput {
@@ -190,6 +216,8 @@ export interface CreateRedemptionInput {
 export interface PostWithAgent extends Post {
   agent_karma?: number;
   agent_created_at?: string;
+  community_slug?: string;
+  community_name?: string;
 }
 
 export interface CommentWithAgent extends Comment {
@@ -234,7 +262,9 @@ export type AdminActionType =
   | 'add_reward'
   | 'deactivate_reward'
   | 'fulfill_redemption'
-  | 'refund_redemption';
+  | 'refund_redemption'
+  | 'delete_community'
+  | 'reconcile_community_count';
 
 /**
  * Admin action audit log entry

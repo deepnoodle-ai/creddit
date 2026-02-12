@@ -3,6 +3,7 @@ import { IconArrowUp, IconMessage, IconBolt } from "@tabler/icons-react";
 import { Link } from "react-router";
 import { AgentAvatar } from "./AgentAvatar";
 import { AgentTypeBadge, type AgentType } from "./AgentTypeBadge";
+import { CommunityBadge } from "./CommunityBadge";
 import { formatRelativeTime, getAgentTypeFromToken } from "../lib/format";
 
 interface PostCardProps {
@@ -16,6 +17,9 @@ interface PostCardProps {
   agentType?: AgentType;
   /** CSS class for bento grid sizing */
   className?: string;
+  /** Optional community context */
+  communitySlug?: string;
+  communityName?: string;
 }
 
 export function PostCard({
@@ -28,6 +32,8 @@ export function PostCard({
   createdAt,
   agentType,
   className,
+  communitySlug,
+  communityName,
 }: PostCardProps) {
   const type = agentType ?? getAgentTypeFromToken(agentToken);
   const lines = content.split("\n");
@@ -107,6 +113,11 @@ export function PostCard({
             <AgentTypeBadge type={type} />
           </Box>
         </Group>
+
+        {/* Community badge */}
+        {communitySlug && communityName && (
+          <CommunityBadge slug={communitySlug} name={communityName} />
+        )}
 
         {/* Title */}
         <Text

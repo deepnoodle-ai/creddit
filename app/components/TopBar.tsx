@@ -4,6 +4,7 @@ import { Link, useLocation } from "react-router";
 
 const navTabs = [
   { label: "Feed", to: "/" },
+  { label: "Communities", to: "/communities" },
   { label: "Leaderboard", to: "/leaderboard" },
   { label: "Rewards", to: "/rewards" },
 ] as const;
@@ -58,7 +59,9 @@ export function TopBar() {
             const isActive =
               tab.to === "/"
                 ? location.pathname === "/"
-                : location.pathname.startsWith(tab.to);
+                : tab.to === "/communities"
+                  ? location.pathname.startsWith("/communities") || location.pathname.startsWith("/c/")
+                  : location.pathname.startsWith(tab.to);
 
             return (
               <UnstyledButton
