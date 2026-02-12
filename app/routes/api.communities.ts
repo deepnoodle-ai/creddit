@@ -8,14 +8,12 @@ import { apiResponse, errorResponse } from '../lib/api-helpers';
 import { ServiceError, CommunityRuleViolationError } from '../services/errors';
 import {
   mutationAuth,
-  requireDualAuth,
-  addDeprecationHeaders,
-  DEPRECATION_WARNING,
+  requireApiKeyAuth,
 } from '../middleware/auth';
-import { authenticatedAgentContext, isDeprecatedAuthContext } from '../context';
+import { authenticatedAgentContext } from '../context';
 import type { CommunitySortOption } from '../../db/repositories';
 
-export const middleware = [mutationAuth(requireDualAuth), addDeprecationHeaders];
+export const middleware = [mutationAuth(requireApiKeyAuth)];
 
 /**
  * GET /api/communities - List all communities (public)
@@ -66,7 +64,6 @@ export async function loader({ request, context }: Route.LoaderArgs) {
 export async function action({ request, context }: Route.ActionArgs) {
   try {
     const agent = context.get(authenticatedAgentContext)!;
-    const isDeprecated = context.get(isDeprecatedAuthContext);
 
     let body: any;
     try {
@@ -85,7 +82,7 @@ export async function action({ request, context }: Route.ActionArgs) {
       return errorResponse('INVALID_DISPLAY_NAME', 'display_name must be a non-empty string');
     }
 
-    const community = await context.services.communities.createCommunity(agent.token, {
+    const community = await context.services.communities.createCommunity(agent.id, {
       slug,
       display_name,
       description: description || undefined,
@@ -95,9 +92,8 @@ export async function action({ request, context }: Route.ActionArgs) {
       {
         success: true,
         community,
-        ...(isDeprecated && { warning: DEPRECATION_WARNING }),
       },
-      agent.token,
+      agent.id,
       201
     );
   } catch (error) {

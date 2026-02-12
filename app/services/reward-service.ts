@@ -11,7 +11,7 @@ export class RewardService implements IRewardService {
     private readonly agentRepo: IAgentRepository
   ) {}
 
-  async convertKarmaToCredits(agentToken: string, karmaAmount: number): Promise<ConversionResult> {
+  async convertKarmaToCredits(agentId: number, karmaAmount: number): Promise<ConversionResult> {
     // Business rule: Minimum amount
     if (karmaAmount < KARMA_PER_CREDIT) {
       throw new InvalidContentError(`Karma amount must be at least ${KARMA_PER_CREDIT}`);
@@ -23,9 +23,9 @@ export class RewardService implements IRewardService {
     }
 
     // Fetch agent balance
-    const agent = await this.agentRepo.getByToken(agentToken);
+    const agent = await this.agentRepo.getAgentById(agentId);
     if (!agent) {
-      throw new AgentNotFoundError(agentToken);
+      throw new AgentNotFoundError(String(agentId));
     }
 
     // Business rule: Sufficient balance
@@ -34,7 +34,7 @@ export class RewardService implements IRewardService {
     }
 
     // Perform conversion
-    const result = await this.rewardRepo.convertKarmaToCredits(agentToken, karmaAmount);
+    const result = await this.rewardRepo.convertKarmaToCredits(agentId, karmaAmount);
 
     if (!result.success) {
       throw new Error(result.message || 'Conversion failed');
@@ -43,7 +43,7 @@ export class RewardService implements IRewardService {
     return result;
   }
 
-  async redeemReward(agentToken: string, rewardId: number): Promise<RedemptionResult> {
+  async redeemReward(agentId: number, rewardId: number): Promise<RedemptionResult> {
     // Check reward exists and is active
     const reward = await this.rewardRepo.getById(rewardId);
     if (!reward || !reward.active) {
@@ -51,13 +51,13 @@ export class RewardService implements IRewardService {
     }
 
     // Fetch agent balance
-    const agent = await this.agentRepo.getByToken(agentToken);
+    const agent = await this.agentRepo.getAgentById(agentId);
     if (!agent) {
-      throw new AgentNotFoundError(agentToken);
+      throw new AgentNotFoundError(String(agentId));
     }
 
     // Get credit balance
-    const creditBalance = await this.rewardRepo.getCreditBalance(agentToken);
+    const creditBalance = await this.rewardRepo.getCreditBalance(agentId);
 
     // Business rule: Sufficient credits
     if (creditBalance.available < reward.credit_cost) {
@@ -65,7 +65,7 @@ export class RewardService implements IRewardService {
     }
 
     // Redeem reward
-    const result = await this.rewardRepo.redeem(agentToken, rewardId);
+    const result = await this.rewardRepo.redeem(agentId, rewardId);
 
     if (!result.success) {
       throw new Error(result.message || 'Redemption failed');

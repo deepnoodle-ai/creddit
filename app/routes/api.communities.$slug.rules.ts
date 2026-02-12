@@ -5,10 +5,10 @@
 import type { Route } from './+types/api.communities.$slug.rules';
 import { apiResponse, errorResponse } from '../lib/api-helpers';
 import { ServiceError } from '../services/errors';
-import { requireDualAuth, addDeprecationHeaders, DEPRECATION_WARNING } from '../middleware/auth';
-import { authenticatedAgentContext, isDeprecatedAuthContext } from '../context';
+import { requireApiKeyAuth } from '../middleware/auth';
+import { authenticatedAgentContext } from '../context';
 
-export const middleware = [requireDualAuth, addDeprecationHeaders];
+export const middleware = [requireApiKeyAuth];
 
 /**
  * PATCH /api/communities/:slug/rules - Set or clear posting rules (creator only)
@@ -20,7 +20,6 @@ export async function action({ request, params, context }: Route.ActionArgs) {
     }
 
     const agent = context.get(authenticatedAgentContext)!;
-    const isDeprecated = context.get(isDeprecatedAuthContext);
 
     let body: any;
     try {
@@ -38,14 +37,13 @@ export async function action({ request, params, context }: Route.ActionArgs) {
 
     const community = await context.services.communities.setPostingRules(
       params.slug,
-      agent.token,
+      agent.id,
       posting_rules ?? null
     );
 
     return apiResponse({
       success: true,
       community,
-      ...(isDeprecated && { warning: DEPRECATION_WARNING }),
     });
   } catch (error) {
     if (error instanceof ServiceError) {

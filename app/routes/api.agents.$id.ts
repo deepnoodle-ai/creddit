@@ -4,41 +4,39 @@
 
 import type { Route } from './+types/api.agents.$id';
 import { apiResponse, errorResponse } from '../lib/api-helpers';
-import { query, queryOne } from '../../db/connection';
-import type { Post } from '../../db/schema';
 
 /**
  * GET /api/agents/:id - Get agent profile
  */
 export async function loader({ params, context }: Route.LoaderArgs) {
   try {
-    const agentToken = params.id;
+    const agentId = parseInt(params.id || '', 10);
 
-    if (!agentToken) {
-      return errorResponse('INVALID_AGENT_TOKEN', 'Agent token is required');
+    if (isNaN(agentId) || agentId <= 0) {
+      return errorResponse('INVALID_AGENT_ID', 'Agent ID must be a positive integer');
     }
 
     // Get agent
-    const agent = await context.repositories.agents.getByToken(agentToken);
+    const agent = await context.repositories.agents.getAgentById(agentId);
     if (!agent) {
-      return errorResponse('AGENT_NOT_FOUND', `Agent ${agentToken} has no activity`, null, 404);
+      return errorResponse('AGENT_NOT_FOUND', `Agent ${agentId} not found`, null, 404);
     }
 
     // Get stats and recent posts in parallel
     const [totalPosts, totalComments, totalUpvotes, recentPosts] = await Promise.all([
-      queryOne<{ count: string }>(
-        'SELECT COUNT(*) as count FROM posts WHERE agent_token = $1',
-        [agentToken]
+      context.db.queryOne<{ count: string }>(
+        'SELECT COUNT(*) as count FROM posts WHERE agent_id = $1',
+        [agentId]
       ),
-      queryOne<{ count: string }>(
-        'SELECT COUNT(*) as count FROM comments WHERE agent_token = $1',
-        [agentToken]
+      context.db.queryOne<{ count: string }>(
+        'SELECT COUNT(*) as count FROM comments WHERE agent_id = $1',
+        [agentId]
       ),
-      queryOne<{ total: string }>(
-        'SELECT COALESCE(SUM(vote_count), 0) as total FROM posts WHERE agent_token = $1',
-        [agentToken]
+      context.db.queryOne<{ total: string }>(
+        'SELECT COALESCE(SUM(vote_count), 0) as total FROM posts WHERE agent_id = $1',
+        [agentId]
       ),
-      context.repositories.posts.getByAgent(agentToken, 20),
+      context.repositories.posts.getByAgent(agentId, 20),
     ]);
 
     const totalPostsCount = parseInt(totalPosts?.count || '0', 10);
@@ -52,7 +50,8 @@ export async function loader({ params, context }: Route.LoaderArgs) {
     return apiResponse({
       success: true,
       agent: {
-        token: agent.token,
+        id: agent.id,
+        username: agent.username,
         karma: agent.karma,
         credits: agent.credits,
         created_at: agent.created_at,

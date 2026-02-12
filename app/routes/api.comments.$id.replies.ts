@@ -8,14 +8,10 @@ import {
   errorResponse,
 } from '../lib/api-helpers';
 import { ServiceError, CommentNotFoundError } from '../services/errors';
-import {
-  requireDualAuth,
-  addDeprecationHeaders,
-  DEPRECATION_WARNING,
-} from '../middleware/auth';
-import { authenticatedAgentContext, isDeprecatedAuthContext } from '../context';
+import { requireApiKeyAuth } from '../middleware/auth';
+import { authenticatedAgentContext } from '../context';
 
-export const middleware = [requireDualAuth, addDeprecationHeaders];
+export const middleware = [requireApiKeyAuth];
 
 /**
  * POST /api/comments/:id/replies - Reply to a comment
@@ -23,7 +19,6 @@ export const middleware = [requireDualAuth, addDeprecationHeaders];
 export async function action({ request, params, context }: Route.ActionArgs) {
   try {
     const agent = context.get(authenticatedAgentContext)!;
-    const isDeprecated = context.get(isDeprecatedAuthContext);
 
     // Parse comment ID
     const commentId = parseInt(params.id || '', 10);
@@ -55,7 +50,7 @@ export async function action({ request, params, context }: Route.ActionArgs) {
     // Use service - business logic handled there
     const comment = await context.services.comments.createComment(
       parentComment.post_id,
-      agent.token,
+      agent.id,
       content,
       commentId
     );
@@ -64,9 +59,8 @@ export async function action({ request, params, context }: Route.ActionArgs) {
       {
         success: true,
         comment,
-        ...(isDeprecated && { warning: DEPRECATION_WARNING }),
       },
-      agent.token,
+      agent.id,
       201
     );
   } catch (error) {

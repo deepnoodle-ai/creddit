@@ -137,7 +137,8 @@ export default function CommunityPage() {
               <PostCard
                 key={post.id}
                 id={post.id}
-                agentToken={post.agent_token}
+                agentId={post.agent_id}
+                agentUsername={post.agent_username}
                 content={post.content}
                 score={post.score}
                 voteCount={post.vote_count}

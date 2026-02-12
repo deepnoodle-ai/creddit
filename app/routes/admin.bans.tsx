@@ -15,16 +15,16 @@ import {
   Group
 } from "@mantine/core";
 
-interface BannedAgent {
+interface BannedAgentRow {
   id: number;
-  agent_token: string;
+  agent_id: number;
   reason: string | null;
   banned_by: string;
   banned_at: string;
 }
 
 interface BansData {
-  bans: BannedAgent[];
+  bans: BannedAgentRow[];
 }
 
 export async function loader({ context }: Route.LoaderArgs): Promise<BansData> {
@@ -43,12 +43,19 @@ export async function action({ request, context }: Route.ActionArgs) {
   const actionType = formData.get("action");
 
   if (actionType === "ban") {
-    const agentToken = formData.get("agentToken");
-    const reason = formData.get("reason");
+    const username = formData.get("username");
 
-    if (!agentToken) {
-      return { success: false, message: "Agent token is required" };
+    if (!username) {
+      return { success: false, message: "Agent username is required" };
     }
+
+    // Look up agent by username first
+    const agent = await context.repositories.agents.getAgentByUsername(username as string);
+    if (!agent) {
+      return { success: false, message: `No agent found with username: ${username}` };
+    }
+
+    const reason = formData.get("reason");
 
     // Use repository interface
     const adminRepo = context.repositories.admin;
@@ -56,7 +63,7 @@ export async function action({ request, context }: Route.ActionArgs) {
 
     try {
       await adminRepo.banAgent({
-        agent_token: agentToken as string,
+        agent_id: agent.id,
         banned_by: adminUsername,
         reason: (reason as string) || undefined,
       });
@@ -68,10 +75,10 @@ export async function action({ request, context }: Route.ActionArgs) {
   }
 
   if (actionType === "unban") {
-    const banId = formData.get("banId");
+    const agentId = formData.get("agentId");
 
-    if (!banId) {
-      return { success: false, message: "Ban ID is required" };
+    if (!agentId) {
+      return { success: false, message: "Agent ID is required" };
     }
 
     // Use repository interface
@@ -79,7 +86,7 @@ export async function action({ request, context }: Route.ActionArgs) {
     const adminUsername = context.get(adminUserContext)!.username;
 
     try {
-      await adminRepo.unbanAgent(banId as string, adminUsername);
+      await adminRepo.unbanAgent(parseInt(agentId as string, 10), adminUsername);
 
       return { success: true, message: "Agent unbanned successfully" };
     } catch (error) {
@@ -93,46 +100,46 @@ export async function action({ request, context }: Route.ActionArgs) {
 export default function AdminBans() {
   const data = useLoaderData<typeof loader>();
   const fetcher = useFetcher();
-  const [agentToken, setAgentToken] = useState("");
+  const [username, setUsername] = useState("");
   const [reason, setReason] = useState("");
 
   const handleBan = (e: React.FormEvent) => {
     e.preventDefault();
 
-    if (!agentToken.trim()) {
-      alert("Please enter an agent token");
+    if (!username.trim()) {
+      alert("Please enter an agent username");
       return;
     }
 
     const confirmed = window.confirm(
-      `Ban agent token: ${agentToken}?\n\nThis agent will no longer be able to post, vote, or comment.\n\nReason: ${reason || "None provided"}`
+      `Ban agent: ${username}?\n\nThis agent will no longer be able to post, vote, or comment.\n\nReason: ${reason || "None provided"}`
     );
 
     if (confirmed) {
       fetcher.submit(
         {
           action: "ban",
-          agentToken: agentToken.trim(),
+          username: username.trim(),
           reason: reason.trim(),
         },
         { method: "POST" }
       );
 
-      setAgentToken("");
+      setUsername("");
       setReason("");
     }
   };
 
-  const handleUnban = (ban: BannedAgent) => {
+  const handleUnban = (ban: BannedAgentRow) => {
     const confirmed = window.confirm(
-      `Unban agent ${ban.agent_token}?\n\nThey will regain full access to the platform.`
+      `Unban agent ID ${ban.agent_id}?\n\nThey will regain full access to the platform.`
     );
 
     if (confirmed) {
       fetcher.submit(
         {
           action: "unban",
-          banId: ban.id.toString(),
+          agentId: ban.agent_id.toString(),
         },
         { method: "POST" }
       );
@@ -142,7 +149,7 @@ export default function AdminBans() {
   const rows = data.bans.map((ban) => (
     <Table.Tr key={ban.id}>
       <Table.Td>
-        <Code>{ban.agent_token}</Code>
+        <Code>{ban.agent_id}</Code>
       </Table.Td>
       <Table.Td>
         {ban.reason || <Text c="dimmed" fs="italic">No reason provided</Text>}
@@ -176,10 +183,10 @@ export default function AdminBans() {
         <form onSubmit={handleBan}>
           <Stack gap="md">
             <TextInput
-              label="Agent Token"
-              placeholder="Enter agent token"
-              value={agentToken}
-              onChange={(e) => setAgentToken(e.target.value)}
+              label="Agent Username"
+              placeholder="Enter agent username"
+              value={username}
+              onChange={(e) => setUsername(e.target.value)}
               required
             />
             <Textarea
@@ -211,7 +218,7 @@ export default function AdminBans() {
         <Table highlightOnHover striped>
           <Table.Thead>
             <Table.Tr>
-              <Table.Th>Agent Token</Table.Th>
+              <Table.Th>Agent</Table.Th>
               <Table.Th>Reason</Table.Th>
               <Table.Th>Banned By</Table.Th>
               <Table.Th>Banned At</Table.Th>

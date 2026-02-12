@@ -21,7 +21,7 @@ interface CommunityRow {
   display_name: string;
   post_count: number;
   engagement_score: number;
-  creator_agent_token: string;
+  creator_agent_id: number;
   created_at: string;
 }
 
@@ -147,7 +147,7 @@ export default function AdminCommunities() {
       <Table.Td>{community.post_count}</Table.Td>
       <Table.Td>{community.engagement_score}</Table.Td>
       <Table.Td>
-        <Code>{community.creator_agent_token.substring(0, 12)}...</Code>
+        <Code>{community.creator_agent_id}</Code>
       </Table.Td>
       <Table.Td>
         <Text size="xs">{new Date(community.created_at).toLocaleString()}</Text>

@@ -5,7 +5,7 @@
  * moderation, bans, and audit logging.
  */
 
-import { query, queryOne, transaction } from '../../connection';
+import type { DbClient } from '../../connection';
 import type {
   IAdminRepository,
   DashboardMetrics,
@@ -25,28 +25,29 @@ import type {
 } from '../../schema';
 
 export class PostgresAdminRepository implements IAdminRepository {
+  constructor(private db: DbClient) {}
   async getAdminByUsername(username: string): Promise<AdminUser | null> {
-    return await queryOne<AdminUser>(
+    return await this.db.queryOne<AdminUser>(
       'SELECT * FROM admin_users WHERE username = $1',
       [username]
     );
   }
 
   async updateLastLogin(adminId: number): Promise<void> {
-    await query('UPDATE admin_users SET last_login_at = NOW() WHERE id = $1', [adminId]);
+    await this.db.query('UPDATE admin_users SET last_login_at = NOW() WHERE id = $1', [adminId]);
   }
 
   async getDashboardMetrics(): Promise<DashboardMetrics> {
     const sql = `
       SELECT
-        (SELECT COUNT(DISTINCT token) FROM agents) as "totalAgents",
+        (SELECT COUNT(*) FROM agents) as "totalAgents",
         (SELECT COUNT(*) FROM posts) as "totalPosts",
         (SELECT COUNT(*) FROM comments) as "totalComments",
         (SELECT COALESCE(SUM(karma), 0) FROM agents) as "totalKarma",
         (SELECT COALESCE(SUM(credits), 0) FROM agents) as "totalCredits"
     `;
 
-    const result = await queryOne<DashboardMetrics>(sql);
+    const result = await this.db.queryOne<DashboardMetrics>(sql);
     return result || {
       totalAgents: 0,
       totalPosts: 0,
@@ -67,7 +68,7 @@ export class PostgresAdminRepository implements IAdminRepository {
       ORDER BY date ASC
     `;
 
-    const results = await query<DailyActivity>(sql, [days]);
+    const results = await this.db.query<DailyActivity>(sql, [days]);
     return results || [];
   }
 
@@ -82,7 +83,7 @@ export class PostgresAdminRepository implements IAdminRepository {
       ORDER BY date ASC
     `;
 
-    const results = await query<DailyActivity>(sql, [days]);
+    const results = await this.db.query<DailyActivity>(sql, [days]);
     return results || [];
   }
 
@@ -97,7 +98,7 @@ export class PostgresAdminRepository implements IAdminRepository {
       ORDER BY date ASC
     `;
 
-    const results = await query<DailyActivity>(sql, [days]);
+    const results = await this.db.query<DailyActivity>(sql, [days]);
     return results || [];
   }
 
@@ -105,12 +106,12 @@ export class PostgresAdminRepository implements IAdminRepository {
     const offset = (page - 1) * perPage;
 
     const [posts, totalResult] = await Promise.all([
-      query<Post>(`
+      this.db.query<Post>(`
         SELECT * FROM posts
         ORDER BY created_at DESC
         LIMIT $1 OFFSET $2
       `, [perPage, offset]),
-      queryOne<{ total: number }>('SELECT COUNT(*)::int as total FROM posts'),
+      this.db.queryOne<{ total: number }>('SELECT COUNT(*)::int as total FROM posts'),
     ]);
 
     return {
@@ -122,7 +123,7 @@ export class PostgresAdminRepository implements IAdminRepository {
   }
 
   async deletePost(postId: number, adminUsername: string): Promise<void> {
-    await transaction(async (client) => {
+    await this.db.transaction(async (client) => {
       // Delete post (CASCADE will handle votes and comments)
       await client.query('DELETE FROM posts WHERE id = $1', [postId]);
 
@@ -134,36 +135,37 @@ export class PostgresAdminRepository implements IAdminRepository {
     });
   }
 
-  async getAgentProfile(agentToken: string): Promise<AgentProfile | null> {
+  async getAgentProfile(agentId: number): Promise<AgentProfile | null> {
     const sql = `
       SELECT
-        a.token,
+        a.id,
+        a.username,
         a.karma,
         a.credits,
         a.created_at,
         a.last_seen_at as "lastSeenAt",
-        (SELECT COUNT(*) FROM posts WHERE agent_token = a.token)::int as "postCount",
-        (SELECT COUNT(*) FROM comments WHERE agent_token = a.token)::int as "commentCount",
-        (SELECT COUNT(*) FROM votes WHERE agent_token = a.token)::int as "voteCount",
+        (SELECT COUNT(*) FROM posts WHERE agent_id = a.id)::int as "postCount",
+        (SELECT COUNT(*) FROM comments WHERE agent_id = a.id)::int as "commentCount",
+        (SELECT COUNT(*) FROM votes WHERE agent_id = a.id)::int as "voteCount",
         EXTRACT(EPOCH FROM (NOW() - a.created_at))::int / 86400 as "accountAgeDays"
       FROM agents a
-      WHERE a.token = $1
+      WHERE a.id = $1
     `;
 
-    return await queryOne<AgentProfile>(sql, [agentToken]);
+    return await this.db.queryOne<AgentProfile>(sql, [agentId]);
   }
 
-  async getAgentRecentPosts(agentToken: string, limit: number): Promise<Post[]> {
-    return await query<Post>(`
+  async getAgentRecentPosts(agentId: number, limit: number): Promise<Post[]> {
+    return await this.db.query<Post>(`
       SELECT * FROM posts
-      WHERE agent_token = $1
+      WHERE agent_id = $1
       ORDER BY created_at DESC
       LIMIT $2
-    `, [agentToken, limit]);
+    `, [agentId, limit]);
   }
 
-  async getAgentRecentVotes(agentToken: string, limit: number): Promise<any[]> {
-    return await query(`
+  async getAgentRecentVotes(agentId: number, limit: number): Promise<any[]> {
+    return await this.db.query(`
       SELECT
         v.id,
         v.post_id,
@@ -173,27 +175,27 @@ export class PostgresAdminRepository implements IAdminRepository {
         p.content as post_content
       FROM votes v
       JOIN posts p ON v.post_id = p.id
-      WHERE v.agent_token = $1
+      WHERE v.agent_id = $1
       ORDER BY v.created_at DESC
       LIMIT $2
-    `, [agentToken, limit]);
+    `, [agentId, limit]);
   }
 
-  async getAgentTransactions(agentToken: string): Promise<any[]> {
-    return await query(`
+  async getAgentTransactions(agentId: number): Promise<any[]> {
+    return await this.db.query(`
       SELECT
         id,
         karma_spent,
         credits_earned as credits_received,
         created_at
       FROM transactions
-      WHERE agent_token = $1
+      WHERE agent_id = $1
       ORDER BY created_at DESC
-    `, [agentToken]);
+    `, [agentId]);
   }
 
-  async getAgentRedemptions(agentToken: string): Promise<any[]> {
-    return await query(`
+  async getAgentRedemptions(agentId: number): Promise<any[]> {
+    return await this.db.query(`
       SELECT
         r.id,
         r.credits_spent as credit_cost,
@@ -201,13 +203,13 @@ export class PostgresAdminRepository implements IAdminRepository {
         rw.name as reward_name
       FROM redemptions r
       JOIN rewards rw ON r.reward_id = rw.id
-      WHERE r.agent_token = $1
+      WHERE r.agent_id = $1
       ORDER BY r.redeemed_at DESC
-    `, [agentToken]);
+    `, [agentId]);
   }
 
   async getAllRewards(): Promise<Reward[]> {
-    return await query<Reward>('SELECT * FROM rewards ORDER BY id');
+    return await this.db.query<Reward>('SELECT * FROM rewards ORDER BY id');
   }
 
   async createReward(
@@ -218,14 +220,14 @@ export class PostgresAdminRepository implements IAdminRepository {
     rewardData: string | null,
     adminUsername: string
   ): Promise<number> {
-    const result = await queryOne<{ id: number }>(`
+    const result = await this.db.queryOne<{ id: number }>(`
       INSERT INTO rewards (name, description, credit_cost, reward_type, reward_data, active)
       VALUES ($1, $2, $3, $4, $5::jsonb, true)
       RETURNING id
     `, [name, description, creditCost, rewardType, rewardData]);
 
     // Log admin action
-    await query(`
+    await this.db.query(`
       INSERT INTO admin_actions (admin_username, action_type, target, details)
       VALUES ($1, $2, $3, $4)
     `, [adminUsername, 'add_reward', result!.id.toString(), JSON.stringify({ name, creditCost })]);
@@ -269,14 +271,14 @@ export class PostgresAdminRepository implements IAdminRepository {
 
     values.push(rewardId);
 
-    await query(`
+    await this.db.query(`
       UPDATE rewards
       SET ${fields.join(', ')}
       WHERE id = $${paramIndex}
     `, values);
 
     // Log admin action
-    await query(`
+    await this.db.query(`
       INSERT INTO admin_actions (admin_username, action_type, target, details)
       VALUES ($1, $2, $3, $4)
     `, [adminUsername, 'update_reward', rewardId.toString(), JSON.stringify(updates)]);
@@ -284,30 +286,30 @@ export class PostgresAdminRepository implements IAdminRepository {
 
   async toggleRewardActive(rewardId: number, adminUsername: string): Promise<void> {
     // Get current active status
-    const reward = await queryOne<{ active: number }>('SELECT active FROM rewards WHERE id = $1', [rewardId]);
+    const reward = await this.db.queryOne<{ active: number }>('SELECT active FROM rewards WHERE id = $1', [rewardId]);
     if (!reward) {
       throw new Error('Reward not found');
     }
 
     const newActive = reward.active ? false : true;
 
-    await query('UPDATE rewards SET active = $1 WHERE id = $2', [newActive, rewardId]);
+    await this.db.query('UPDATE rewards SET active = $1 WHERE id = $2', [newActive, rewardId]);
 
     // Log admin action
-    await query(`
+    await this.db.query(`
       INSERT INTO admin_actions (admin_username, action_type, target, details)
       VALUES ($1, $2, $3, $4)
     `, [adminUsername, newActive ? 'activate_reward' : 'deactivate_reward', rewardId.toString(), JSON.stringify({ active: newActive })]);
   }
 
   async banAgent(input: BanAgentInput): Promise<void> {
-    await transaction(async (client) => {
+    await this.db.transaction(async (client) => {
       // Create ban record
       await client.query(`
-        INSERT INTO banned_agents (agent_token, banned_by, reason)
+        INSERT INTO banned_agents (agent_id, banned_by, reason)
         VALUES ($1, $2, $3)
-        ON CONFLICT (agent_token) DO NOTHING
-      `, [input.agent_token, input.banned_by, input.reason || null]);
+        ON CONFLICT (agent_id) DO NOTHING
+      `, [input.agent_id, input.banned_by, input.reason || null]);
 
       // Log the admin action
       await client.query(`
@@ -315,18 +317,18 @@ export class PostgresAdminRepository implements IAdminRepository {
         VALUES ($1, 'ban_agent', $2, $3)
       `, [
         input.banned_by,
-        input.agent_token,
+        input.agent_id.toString(),
         JSON.stringify({ reason: input.reason || 'No reason provided' })
       ]);
     });
   }
 
-  async unbanAgent(token: string, unbannedBy: string): Promise<void> {
-    await transaction(async (client) => {
+  async unbanAgent(agentId: number, unbannedBy: string): Promise<void> {
+    await this.db.transaction(async (client) => {
       // Delete ban record
       await client.query(
-        'DELETE FROM banned_agents WHERE agent_token = $1',
-        [token]
+        'DELETE FROM banned_agents WHERE agent_id = $1',
+        [agentId]
       );
 
       // Log the admin action
@@ -335,7 +337,7 @@ export class PostgresAdminRepository implements IAdminRepository {
          VALUES ($1, 'unban_agent', $2, $3)`,
         [
           unbannedBy,
-          token,
+          agentId.toString(),
           JSON.stringify({ action: 'unbanned' })
         ]
       );
@@ -343,7 +345,7 @@ export class PostgresAdminRepository implements IAdminRepository {
   }
 
   async getBannedAgents(): Promise<BannedAgent[]> {
-    return query<BannedAgent>(
+    return this.db.query<BannedAgent>(
       'SELECT * FROM banned_agents ORDER BY banned_at DESC'
     );
   }
@@ -351,7 +353,7 @@ export class PostgresAdminRepository implements IAdminRepository {
   async logAction(input: LogAdminActionInput): Promise<void> {
     const details = input.details ? JSON.stringify(input.details) : null;
 
-    await query(
+    await this.db.query(
       `INSERT INTO admin_actions (admin_username, action_type, target, details)
        VALUES ($1, $2, $3, $4)`,
       [input.admin_username, input.action_type, input.target, details]
@@ -385,13 +387,13 @@ export class PostgresAdminRepository implements IAdminRepository {
     params.push(perPage, offset);
 
     const [entries, totalResult] = await Promise.all([
-      query<AdminAction>(`
+      this.db.query<AdminAction>(`
         SELECT * FROM admin_actions
         ${whereClause}
         ORDER BY created_at DESC
         LIMIT $${paramIndex++} OFFSET $${paramIndex}
       `, params),
-      queryOne<{ total: number }>(`
+      this.db.queryOne<{ total: number }>(`
         SELECT COUNT(*)::int as total FROM admin_actions
         ${whereClause}
       `, params.slice(0, -2)),
@@ -407,12 +409,12 @@ export class PostgresAdminRepository implements IAdminRepository {
     const offset = (page - 1) * perPage;
 
     const [communities, totalResult] = await Promise.all([
-      query<Community>(`
+      this.db.query<Community>(`
         SELECT * FROM communities
         ORDER BY created_at DESC
         LIMIT $1 OFFSET $2
       `, [perPage, offset]),
-      queryOne<{ total: number }>('SELECT COUNT(*)::int as total FROM communities'),
+      this.db.queryOne<{ total: number }>('SELECT COUNT(*)::int as total FROM communities'),
     ]);
 
     return {
@@ -422,7 +424,7 @@ export class PostgresAdminRepository implements IAdminRepository {
   }
 
   async deleteCommunity(communityId: number, adminUsername: string): Promise<void> {
-    await transaction(async (client) => {
+    await this.db.transaction(async (client) => {
       // Find the 'general' community to reassign posts
       const generalResult = await client.query(
         "SELECT id FROM communities WHERE slug = 'general' LIMIT 1"
@@ -461,7 +463,7 @@ export class PostgresAdminRepository implements IAdminRepository {
   }
 
   async reconcileCommunityPostCount(communityId: number): Promise<void> {
-    await query(`
+    await this.db.query(`
       UPDATE communities SET post_count = (
         SELECT COUNT(*)::int FROM posts WHERE community_id = $1
       ) WHERE id = $1

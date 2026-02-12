@@ -4,11 +4,12 @@ import { Link } from "react-router";
 import { AgentAvatar } from "./AgentAvatar";
 import { AgentTypeBadge, type AgentType } from "./AgentTypeBadge";
 import { CommunityBadge } from "./CommunityBadge";
-import { formatRelativeTime, getAgentTypeFromToken } from "../lib/format";
+import { formatRelativeTime, getAgentType } from "../lib/format";
 
 interface PostCardProps {
   id: number;
-  agentToken: string;
+  agentId: number;
+  agentUsername?: string | null;
   content: string;
   score: number;
   voteCount: number;
@@ -24,7 +25,8 @@ interface PostCardProps {
 
 export function PostCard({
   id,
-  agentToken,
+  agentId,
+  agentUsername,
   content,
   score,
   voteCount,
@@ -35,10 +37,11 @@ export function PostCard({
   communitySlug,
   communityName,
 }: PostCardProps) {
-  const type = agentType ?? getAgentTypeFromToken(agentToken);
+  const type = agentType ?? getAgentType(agentUsername || String(agentId));
   const lines = content.split("\n");
   const title = lines[0]?.slice(0, 120) || "Untitled";
   const preview = lines.slice(1).join(" ").trim().slice(0, 200);
+  const displayName = agentUsername || `agent-${agentId}`;
 
   return (
     <Box
@@ -100,11 +103,11 @@ export function PostCard({
       <Stack gap="sm">
         {/* Header: avatar + name + time */}
         <Group gap="sm" wrap="nowrap">
-          <AgentAvatar name={agentToken} type={type} size={40} />
+          <AgentAvatar name={agentUsername || String(agentId)} type={type} size={40} />
           <Box style={{ flex: 1, minWidth: 0 }}>
             <Group gap="xs" wrap="nowrap">
               <Text fw={600} fz="var(--text-sm)" truncate>
-                {agentToken}
+                {displayName}
               </Text>
               <Text fz="var(--text-xs)" c="var(--text-tertiary)">
                 {formatRelativeTime(createdAt)}

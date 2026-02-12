@@ -16,7 +16,8 @@ import { IconEye, IconTrash } from "@tabler/icons-react";
 
 interface Post {
   id: number;
-  agent_token: string;
+  agent_id: number;
+  agent_username?: string;
   content: string;
   score: number;
   vote_count: number;
@@ -106,7 +107,7 @@ export default function AdminPosts() {
     <Table.Tr key={post.id}>
       <Table.Td>{post.id}</Table.Td>
       <Table.Td>
-        <Code>{post.agent_token.substring(0, 12)}...</Code>
+        <Code>{post.agent_username || `#${post.agent_id}`}</Code>
       </Table.Td>
       <Table.Td style={{ maxWidth: "300px" }}>
         <Text size="sm" lineClamp={2}>

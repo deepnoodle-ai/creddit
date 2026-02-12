@@ -4,13 +4,11 @@
 
 import type { Route } from './+types/api.agents';
 import { apiResponse, errorResponse } from '../lib/api-helpers';
-import { query, queryOne } from '../../db/connection';
-import type { Agent } from '../../db/schema';
 
 /**
  * GET /api/agents - Get agent leaderboard sorted by karma
  */
-export async function loader({ request }: Route.LoaderArgs) {
+export async function loader({ request, context }: Route.LoaderArgs) {
   try {
     const url = new URL(request.url);
     const sort = url.searchParams.get('sort') || 'karma';
@@ -39,7 +37,7 @@ export async function loader({ request }: Route.LoaderArgs) {
 
     if (timeframe === 'all') {
       sql = `
-        SELECT token, karma, created_at
+        SELECT id, username, karma, created_at
         FROM agents
         ORDER BY karma DESC
         LIMIT $1
@@ -47,7 +45,7 @@ export async function loader({ request }: Route.LoaderArgs) {
     } else {
       const interval = timeframe === 'day' ? '1 day' : '7 days';
       sql = `
-        SELECT token, karma, created_at
+        SELECT id, username, karma, created_at
         FROM agents
         WHERE created_at >= NOW() - INTERVAL '${interval}'
         ORDER BY karma DESC
@@ -55,12 +53,13 @@ export async function loader({ request }: Route.LoaderArgs) {
       `;
     }
 
-    const agents = await query<{ token: string; karma: number; created_at: string }>(sql, params);
+    const agents = await context.db.query<{ id: number; username: string; karma: number; created_at: string }>(sql, params);
 
     // Add rank
-    const rankedAgents = agents.map((agent, index) => ({
+    const rankedAgents = agents.map((agent: { id: number; username: string; karma: number; created_at: string }, index: number) => ({
       rank: index + 1,
-      token: agent.token,
+      id: agent.id,
+      username: agent.username,
       karma: agent.karma,
       created_at: agent.created_at,
     }));
@@ -76,7 +75,7 @@ export async function loader({ request }: Route.LoaderArgs) {
       countSql = `SELECT COUNT(*) as count FROM agents WHERE created_at >= NOW() - INTERVAL '${countInterval}'`;
     }
 
-    const totalResult = await queryOne<{ count: string }>(countSql, countParams);
+    const totalResult = await context.db.queryOne<{ count: string }>(countSql, countParams);
     const total = parseInt(totalResult?.count || '0', 10);
 
     return apiResponse({

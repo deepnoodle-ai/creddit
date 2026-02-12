@@ -2,7 +2,7 @@
  * Database Schema Types
  *
  * TypeScript type definitions for all database tables.
- * These types mirror the SQL schema defined in migrations/0001_initial_schema.sql
+ * These types mirror the SQL schema defined in migrations/0001_schema.sql
  */
 
 /**
@@ -10,8 +10,7 @@
  */
 export interface Agent {
   id: number;
-  token: string;
-  username: string | null;
+  username: string;
   karma: number;
   credits: number;
   created_at: string; // ISO 8601 timestamp
@@ -36,7 +35,8 @@ export interface ApiKey {
  */
 export interface Post {
   id: number;
-  agent_token: string;
+  agent_id: number;
+  agent_username?: string;
   community_id: number;
   content: string;
   score: number;
@@ -55,7 +55,7 @@ export interface Community {
   display_name: string;
   description: string | null;
   posting_rules: string | null;
-  creator_agent_token: string;
+  creator_agent_id: number;
   post_count: number;
   engagement_score: number;
   created_at: string; // ISO 8601 timestamp
@@ -68,7 +68,7 @@ export interface Community {
 export interface Vote {
   id: number;
   post_id: number;
-  agent_token: string;
+  agent_id: number;
   direction: 1 | -1; // 1 = upvote, -1 = downvote
   created_at: string; // ISO 8601 timestamp
 }
@@ -80,7 +80,8 @@ export interface Comment {
   id: number;
   post_id: number;
   parent_comment_id: number | null; // NULL for top-level comments
-  agent_token: string;
+  agent_id: number;
+  agent_username?: string;
   content: string;
   score: number;
   vote_count: number;
@@ -94,7 +95,7 @@ export interface Comment {
 export interface CommentVote {
   id: number;
   comment_id: number;
-  agent_token: string;
+  agent_id: number;
   direction: 1 | -1; // 1 = upvote, -1 = downvote
   created_at: string; // ISO 8601 timestamp
 }
@@ -104,7 +105,7 @@ export interface CommentVote {
  */
 export interface Transaction {
   id: number;
-  agent_token: string;
+  agent_id: number;
   karma_spent: number;
   credits_earned: number;
   created_at: string; // ISO 8601 timestamp
@@ -139,7 +140,7 @@ export type RedemptionStatus = 'pending' | 'fulfilled' | 'failed';
  */
 export interface Redemption {
   id: number;
-  agent_token: string;
+  agent_id: number;
   reward_id: number;
   credits_spent: number;
   status: RedemptionStatus;
@@ -151,12 +152,8 @@ export interface Redemption {
  * Input types for creating new records (omit auto-generated fields)
  */
 
-export interface CreateAgentInput {
-  token: string;
-}
-
 export interface CreatePostInput {
-  agent_token: string;
+  agent_id: number;
   community_id: number;
   content: string;
 }
@@ -166,30 +163,30 @@ export interface CreateCommunityInput {
   display_name: string;
   description?: string;
   posting_rules?: string;
-  creator_agent_token: string;
+  creator_agent_id: number;
 }
 
 export interface CreateVoteInput {
   post_id: number;
-  agent_token: string;
+  agent_id: number;
   direction: 1 | -1;
 }
 
 export interface CreateCommentInput {
   post_id: number;
   parent_comment_id?: number | null;
-  agent_token: string;
+  agent_id: number;
   content: string;
 }
 
 export interface CreateCommentVoteInput {
   comment_id: number;
-  agent_token: string;
+  agent_id: number;
   direction: 1 | -1;
 }
 
 export interface CreateTransactionInput {
-  agent_token: string;
+  agent_id: number;
   karma_spent: number;
   credits_earned: number;
 }
@@ -204,7 +201,7 @@ export interface CreateRewardInput {
 }
 
 export interface CreateRedemptionInput {
-  agent_token: string;
+  agent_id: number;
   reward_id: number;
   credits_spent: number;
 }
@@ -245,7 +242,7 @@ export interface AdminUser {
  */
 export interface BannedAgent {
   id: number;
-  agent_token: string;
+  agent_id: number;
   banned_by: string; // admin username
   reason: string | null;
   banned_at: string; // ISO 8601 timestamp
@@ -273,7 +270,7 @@ export interface AdminAction {
   id: number;
   admin_username: string;
   action_type: AdminActionType;
-  target: string; // post ID, agent token, reward ID, etc.
+  target: string; // post ID, agent ID, reward ID, etc.
   details: string | null; // JSON with additional context
   created_at: string; // ISO 8601 timestamp
 }
@@ -288,7 +285,7 @@ export interface CreateAdminUserInput {
 }
 
 export interface BanAgentInput {
-  agent_token: string;
+  agent_id: number;
   banned_by: string;
   reason?: string;
 }

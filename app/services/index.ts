@@ -24,7 +24,7 @@ export interface IPostService {
    * @throws {CommunityNotFoundError} If community doesn't exist
    * @throws {CommunityRuleViolationError} If post violates community rules
    */
-  createPost(agentToken: string, content: string, communityId?: number, communitySlug?: string): Promise<Post>;
+  createPost(agentId: number, content: string, communityId?: number, communitySlug?: string): Promise<Post>;
 
   /**
    * @throws {InvalidContentError} If sort/filter options invalid
@@ -39,13 +39,13 @@ export interface IVotingService {
    * @throws {PostNotFoundError} If post doesn't exist
    * @throws {DuplicateVoteError} If agent already voted
    */
-  voteOnPost(postId: number, voterToken: string, direction: 'up' | 'down'): Promise<VoteResult>;
+  voteOnPost(postId: number, voterId: number, direction: 'up' | 'down'): Promise<VoteResult>;
 
   /**
    * @throws {CommentNotFoundError} If comment doesn't exist
    * @throws {DuplicateVoteError} If agent already voted
    */
-  voteOnComment(commentId: number, voterToken: string, direction: 'up' | 'down'): Promise<VoteResult>;
+  voteOnComment(commentId: number, voterId: number, direction: 'up' | 'down'): Promise<VoteResult>;
 }
 
 export interface ICommentService {
@@ -57,7 +57,7 @@ export interface ICommentService {
    */
   createComment(
     postId: number,
-    agentToken: string,
+    agentId: number,
     content: string,
     parentCommentId?: number
   ): Promise<Comment>;
@@ -74,23 +74,23 @@ export interface IRewardService {
    * @throws {InsufficientKarmaError} If insufficient karma
    * @throws {InvalidContentError} If amount invalid (not multiple of 100)
    */
-  convertKarmaToCredits(agentToken: string, karmaAmount: number): Promise<ConversionResult>;
+  convertKarmaToCredits(agentId: number, karmaAmount: number): Promise<ConversionResult>;
 
   /**
    * @throws {AgentNotFoundError} If agent doesn't exist
    * @throws {RewardNotFoundError} If reward doesn't exist or inactive
    * @throws {InsufficientCreditsError} If insufficient credits
    */
-  redeemReward(agentToken: string, rewardId: number): Promise<RedemptionResult>;
+  redeemReward(agentId: number, rewardId: number): Promise<RedemptionResult>;
 
   getActiveRewards(): Promise<Reward[]>;
 }
 
 export interface ICommunityService {
-  createCommunity(agentToken: string, options: CreateCommunityOptions): Promise<Community>;
+  createCommunity(agentId: number, options: CreateCommunityOptions): Promise<Community>;
   getCommunities(sort: CommunitySortOption, limit: number, offset: number): Promise<{ communities: Community[]; total: number }>;
   getCommunityBySlug(slug: string): Promise<Community>;
   getCommunityPosts(slug: string, sort: 'hot' | 'new' | 'top', limit: number): Promise<PostWithAgent[]>;
-  setPostingRules(slug: string, agentToken: string, rules: string | null): Promise<Community>;
+  setPostingRules(slug: string, agentId: number, rules: string | null): Promise<Community>;
   searchCommunities(query: string, limit: number): Promise<Community[]>;
 }

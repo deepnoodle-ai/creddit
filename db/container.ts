@@ -5,6 +5,7 @@
  * This is the ONLY place where concrete types are instantiated.
  */
 
+import type { DbClient } from './connection';
 import type {
   IPostRepository,
   IVotingRepository,
@@ -39,16 +40,16 @@ export interface Repositories {
 }
 
 /**
- * Create repository implementations
+ * Create repository implementations wired to a per-request database client.
  */
-export function createRepositories(): Repositories {
+export function createRepositories(db: DbClient): Repositories {
   return {
-    posts: new PostgresPostRepository(),
-    voting: new PostgresVotingRepository(),
-    agents: new PostgresAgentRepository(),
-    rewards: new PostgresRewardRepository(),
-    comments: new PostgresCommentRepository(),
-    admin: new PostgresAdminRepository(),
-    communities: new PostgresCommunityRepository(),
+    posts: new PostgresPostRepository(db),
+    voting: new PostgresVotingRepository(db),
+    agents: new PostgresAgentRepository(db),
+    rewards: new PostgresRewardRepository(db),
+    comments: new PostgresCommentRepository(db),
+    admin: new PostgresAdminRepository(db),
+    communities: new PostgresCommunityRepository(db),
   };
 }

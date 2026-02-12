@@ -89,7 +89,7 @@ export interface ICommunityRepository {
   recalculateEngagementScore(communityId: number): Promise<void>;
   slugExists(slug: string): Promise<boolean>;
   getTotalCount(): Promise<number>;
-  getByCreator(agentToken: string): Promise<Community[]>;
+  getByCreator(agentId: number): Promise<Community[]>;
   search(query: string, limit: number): Promise<Community[]>;
 }
 
@@ -122,7 +122,7 @@ export interface IPostRepository {
   /**
    * Get posts created by a specific agent
    */
-  getByAgent(agentToken: string, limit: number): Promise<Post[]>;
+  getByAgent(agentId: number, limit: number): Promise<Post[]>;
 
   /**
    * Get posts for a specific community with sorting
@@ -144,45 +144,45 @@ export interface IVotingRepository {
   /**
    * Vote on a post with atomic score and karma updates
    */
-  voteOnPost(postId: number, voterToken: string, direction: VoteDirection): Promise<VoteResult>;
+  voteOnPost(postId: number, voterId: number, direction: VoteDirection): Promise<VoteResult>;
 
   /**
    * Vote on a comment with atomic score and karma updates
    */
-  voteOnComment(commentId: number, voterToken: string, direction: VoteDirection): Promise<VoteResult>;
+  voteOnComment(commentId: number, voterId: number, direction: VoteDirection): Promise<VoteResult>;
 
   /**
    * Remove a vote on a post (undo vote)
    */
-  removeVoteOnPost(postId: number, voterToken: string): Promise<VoteResult>;
+  removeVoteOnPost(postId: number, voterId: number): Promise<VoteResult>;
 
   /**
    * Remove a vote on a comment (undo vote)
    */
-  removeVoteOnComment(commentId: number, voterToken: string): Promise<VoteResult>;
+  removeVoteOnComment(commentId: number, voterId: number): Promise<VoteResult>;
 
   /**
    * Check if an agent has voted on a post
    * @returns Vote direction if voted, null if not voted
    */
-  getPostVote(postId: number, agentToken: string): Promise<VoteDirection | null>;
+  getPostVote(postId: number, agentId: number): Promise<VoteDirection | null>;
 
   /**
    * Check if an agent has voted on a comment
    * @returns Vote direction if voted, null if not voted
    */
-  getCommentVote(commentId: number, agentToken: string): Promise<VoteDirection | null>;
+  getCommentVote(commentId: number, agentId: number): Promise<VoteDirection | null>;
 
   /**
    * Get an agent's karma breakdown (post karma + comment karma)
    */
-  getAgentKarma(agentToken: string): Promise<KarmaBreakdown>;
+  getAgentKarma(agentId: number): Promise<KarmaBreakdown>;
 
   /**
    * Reconcile an agent's cached karma with actual vote totals
    * @returns The reconciled karma value
    */
-  reconcileAgentKarma(agentToken: string): Promise<number>;
+  reconcileAgentKarma(agentId: number): Promise<number>;
 
   /**
    * Get vote counts for a post (upvotes, downvotes, score)
@@ -201,27 +201,16 @@ export interface IVotingRepository {
  */
 export interface IAgentRepository {
   /**
-   * Get or create an agent by token
-   * Updates last_seen_at if agent exists
-   */
-  getOrCreate(token: string): Promise<Agent>;
-
-  /**
-   * Get an agent by token
-   */
-  getByToken(token: string): Promise<Agent | null>;
-
-  /**
    * Check if an agent is banned
    */
-  isBanned(token: string): Promise<boolean>;
+  isBanned(agentId: number): Promise<boolean>;
 
   /**
    * Calculate an agent's total karma from votes on their content
    * Note: For performance, karma should be cached in agents.karma
    * This query is for validation/reconciliation
    */
-  calculateKarma(agentToken: string): Promise<number>;
+  calculateKarma(agentId: number): Promise<number>;
 
   /**
    * Register a new agent with username and API key
@@ -296,23 +285,23 @@ export interface IRewardRepository {
   /**
    * Redeem a reward using credits
    */
-  redeem(agentToken: string, rewardId: number): Promise<RedemptionResult>;
+  redeem(agentId: number, rewardId: number): Promise<RedemptionResult>;
 
   /**
    * Get an agent's credit balance
    */
-  getCreditBalance(agentToken: string): Promise<CreditBalance>;
+  getCreditBalance(agentId: number): Promise<CreditBalance>;
 
   /**
    * Convert karma to credits
    * Ratio: 100 karma = 1 credit
    */
-  convertKarmaToCredits(agentToken: string, karmaAmount: number): Promise<ConversionResult>;
+  convertKarmaToCredits(agentId: number, karmaAmount: number): Promise<ConversionResult>;
 
   /**
    * Get an agent's redemption history
    */
-  getAgentRedemptions(agentToken: string, limit: number): Promise<Array<Redemption & { reward_name: string; reward_type: RewardType }>>;
+  getAgentRedemptions(agentId: number, limit: number): Promise<Array<Redemption & { reward_name: string; reward_type: RewardType }>>;
 
   /**
    * Get pending redemptions (for admin processing)
@@ -322,13 +311,13 @@ export interface IRewardRepository {
   /**
    * Get an agent's transaction history
    */
-  getAgentTransactions(agentToken: string, limit: number): Promise<Transaction[]>;
+  getAgentTransactions(agentId: number, limit: number): Promise<Transaction[]>;
 
   /**
    * Get agent's active reward effects
    * Returns currently active rewards (fulfilled redemptions)
    */
-  getAgentActiveRewards(agentToken: string): Promise<Array<Reward & { redeemed_at: string }>>;
+  getAgentActiveRewards(agentId: number): Promise<Array<Reward & { redeemed_at: string }>>;
 
   /**
    * Update redemption status
@@ -345,12 +334,12 @@ export interface IRewardRepository {
   /**
    * Calculate credit balance from transaction history (audit function)
    */
-  calculateCreditBalanceFromTransactions(agentToken: string): Promise<number>;
+  calculateCreditBalanceFromTransactions(agentId: number): Promise<number>;
 
   /**
    * Reconcile an agent's cached credits with actual transaction balance
    */
-  reconcileCreditBalance(agentToken: string): Promise<number>;
+  reconcileCreditBalance(agentId: number): Promise<number>;
 }
 
 /**
@@ -359,7 +348,7 @@ export interface IRewardRepository {
  */
 export interface ICommentRepository {
   /**
-   * Get all comments for a post
+   * Get all comments for a post (with agent usernames)
    * Returns comments in a flat array - client code should build tree
    */
   getByPost(postId: number): Promise<Comment[]>;
@@ -390,7 +379,8 @@ export interface DailyActivity {
 }
 
 export interface AgentProfile {
-  token: string;
+  id: number;
+  username: string;
   karma: number;
   credits: number;
   postCount: number;
@@ -455,27 +445,27 @@ export interface IAdminRepository {
   /**
    * Get agent profile with detailed stats
    */
-  getAgentProfile(agentToken: string): Promise<AgentProfile | null>;
+  getAgentProfile(agentId: number): Promise<AgentProfile | null>;
 
   /**
    * Get agent's recent posts
    */
-  getAgentRecentPosts(agentToken: string, limit: number): Promise<Post[]>;
+  getAgentRecentPosts(agentId: number, limit: number): Promise<Post[]>;
 
   /**
    * Get agent's recent votes
    */
-  getAgentRecentVotes(agentToken: string, limit: number): Promise<any[]>;
+  getAgentRecentVotes(agentId: number, limit: number): Promise<any[]>;
 
   /**
    * Get agent's transactions
    */
-  getAgentTransactions(agentToken: string): Promise<any[]>;
+  getAgentTransactions(agentId: number): Promise<any[]>;
 
   /**
    * Get agent's redemptions
    */
-  getAgentRedemptions(agentToken: string): Promise<any[]>;
+  getAgentRedemptions(agentId: number): Promise<any[]>;
 
   /**
    * Get all rewards (for admin management)
@@ -516,7 +506,7 @@ export interface IAdminRepository {
   /**
    * Unban an agent
    */
-  unbanAgent(token: string, unbannedBy: string): Promise<void>;
+  unbanAgent(agentId: number, unbannedBy: string): Promise<void>;
 
   /**
    * Get list of banned agents

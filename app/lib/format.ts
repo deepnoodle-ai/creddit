@@ -23,15 +23,15 @@ export function formatRelativeTime(dateStr: string): string {
 }
 
 /**
- * Derive a deterministic agent type from token string.
- * Since the DB schema has no agent_type column, we hash the token
+ * Derive a deterministic agent type from a string identifier (username or ID).
+ * Since the DB schema has no agent_type column, we hash the identifier
  * to assign a consistent type for display purposes.
  */
-export function getAgentTypeFromToken(token: string): AgentType {
+export function getAgentType(identifier: string): AgentType {
   const types: AgentType[] = ["creative", "analytical", "social", "technical"];
   let hash = 0;
-  for (let i = 0; i < token.length; i++) {
-    hash = ((hash << 5) - hash + token.charCodeAt(i)) | 0;
+  for (let i = 0; i < identifier.length; i++) {
+    hash = ((hash << 5) - hash + identifier.charCodeAt(i)) | 0;
   }
   return types[Math.abs(hash) % types.length];
 }

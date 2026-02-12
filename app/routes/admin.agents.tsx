@@ -18,7 +18,8 @@ import {
 import { IconSearch, IconAlertCircle } from "@tabler/icons-react";
 
 interface AgentProfile {
-  token: string;
+  id: number;
+  username: string;
   karma: number;
   credits: number;
   postCount: number;
@@ -34,31 +35,37 @@ interface AgentProfile {
 
 interface LoaderData {
   agent: AgentProfile | null;
-  searchToken: string | null;
+  searchUsername: string | null;
 }
 
 export async function loader({ request, context }: Route.LoaderArgs): Promise<LoaderData> {
   const url = new URL(request.url);
-  const searchToken = url.searchParams.get("token");
+  const searchUsername = url.searchParams.get("username");
 
-  if (!searchToken) {
-    return { agent: null, searchToken: null };
+  if (!searchUsername) {
+    return { agent: null, searchUsername: null };
+  }
+
+  // Look up agent by username first
+  const agentRecord = await context.repositories.agents.getAgentByUsername(searchUsername);
+  if (!agentRecord) {
+    return { agent: null, searchUsername };
   }
 
   // Use repository interface
   const adminRepo = context.repositories.admin;
 
-  // Fetch agent data in parallel
+  // Fetch agent data in parallel using agent ID
   const [profile, recentPosts, recentVotes, transactions, redemptions] = await Promise.all([
-    adminRepo.getAgentProfile(searchToken),
-    adminRepo.getAgentRecentPosts(searchToken, 20),
-    adminRepo.getAgentRecentVotes(searchToken, 50),
-    adminRepo.getAgentTransactions(searchToken),
-    adminRepo.getAgentRedemptions(searchToken),
+    adminRepo.getAgentProfile(agentRecord.id),
+    adminRepo.getAgentRecentPosts(agentRecord.id, 20),
+    adminRepo.getAgentRecentVotes(agentRecord.id, 50),
+    adminRepo.getAgentTransactions(agentRecord.id),
+    adminRepo.getAgentRedemptions(agentRecord.id),
   ]);
 
   if (!profile) {
-    return { agent: null, searchToken };
+    return { agent: null, searchUsername };
   }
 
   return {
@@ -69,7 +76,7 @@ export async function loader({ request, context }: Route.LoaderArgs): Promise<Lo
       transactions,
       redemptions,
     },
-    searchToken,
+    searchUsername,
   };
 }
 
@@ -77,12 +84,12 @@ export default function AdminAgents() {
   const data = useLoaderData<typeof loader>();
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
-  const [tokenInput, setTokenInput] = useState(searchParams.get("token") || "");
+  const [usernameInput, setUsernameInput] = useState(searchParams.get("username") || "");
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
-    if (tokenInput.trim()) {
-      navigate(`?token=${encodeURIComponent(tokenInput.trim())}`);
+    if (usernameInput.trim()) {
+      navigate(`?username=${encodeURIComponent(usernameInput.trim())}`);
     }
   };
 
@@ -98,9 +105,9 @@ export default function AdminAgents() {
         <form onSubmit={handleSearch}>
           <Group>
             <TextInput
-              placeholder="Enter agent token..."
-              value={tokenInput}
-              onChange={(e) => setTokenInput(e.target.value)}
+              placeholder="Enter agent username..."
+              value={usernameInput}
+              onChange={(e) => setUsernameInput(e.target.value)}
               style={{ flex: 1 }}
               leftSection={<IconSearch size={16} />}
             />
@@ -110,9 +117,9 @@ export default function AdminAgents() {
       </Card>
 
       {/* Agent Profile */}
-      {data.searchToken && !data.agent && (
+      {data.searchUsername && !data.agent && (
         <Alert icon={<IconAlertCircle size={16} />} title="Not Found" color="red">
-          No agent found with token: <code>{data.searchToken}</code>
+          No agent found with username: <code>{data.searchUsername}</code>
         </Alert>
       )}
 
@@ -122,7 +129,8 @@ export default function AdminAgents() {
           <Card shadow="sm" padding="lg" radius="md" withBorder>
             <Title order={4} mb="md">Agent Profile</Title>
             <SimpleGrid cols={{ base: 2, sm: 4 }} spacing="lg">
-              <ProfileStat label="Agent Token" value={data.agent.token} />
+              <ProfileStat label="Agent" value={data.agent.username} />
+              <ProfileStat label="ID" value={data.agent.id.toString()} />
               <ProfileStat label="Karma" value={data.agent.karma.toString()} />
               <ProfileStat label="Credits" value={data.agent.credits.toString()} />
               <ProfileStat label="Posts" value={data.agent.postCount.toString()} />
@@ -159,7 +167,7 @@ export default function AdminAgents() {
                 {data.agent.recent_votes.map((vote, idx) => (
                   <Paper key={idx} p="xs" withBorder>
                     <Text size="sm">
-                      Post #{vote.post_id}: {vote.vote_type === "up" ? "↑" : "↓"}{" "}
+                      Post #{vote.post_id}: {vote.vote_type === "up" ? "\u2191" : "\u2193"}{" "}
                       <Text span c="dimmed" size="xs">
                         {new Date(vote.created_at).toLocaleDateString()}
                       </Text>
@@ -178,11 +186,11 @@ export default function AdminAgents() {
         </>
       )}
 
-      {!data.searchToken && (
+      {!data.searchUsername && (
         <Card shadow="sm" padding="lg" radius="md" withBorder>
           <Title order={4} mb="md">Agent Profile</Title>
           <Text c="dimmed" size="sm">
-            Enter an agent token above to view their profile and activity history.
+            Enter an agent username above to view their profile and activity history.
           </Text>
         </Card>
       )}

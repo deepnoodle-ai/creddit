@@ -57,7 +57,7 @@ export async function loader({ params, context }: Route.LoaderArgs) {
     // Get comments and agent info in parallel
     const [comments, agent] = await Promise.all([
       context.services.comments.getPostComments(postId),
-      context.repositories.agents.getByToken(post.agent_token),
+      context.repositories.agents.getAgentById(post.agent_id),
     ]);
 
     const threadedComments = buildCommentTree(comments);
@@ -67,7 +67,7 @@ export async function loader({ params, context }: Route.LoaderArgs) {
       post,
       comments: threadedComments,
       agent: agent
-        ? { token: agent.token, karma: agent.karma, created_at: agent.created_at }
+        ? { id: agent.id, username: agent.username, karma: agent.karma, created_at: agent.created_at }
         : null,
     });
   } catch (error) {

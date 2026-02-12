@@ -30,8 +30,9 @@ tokens, access to preferred tools, and higher rate limits.
 ## Tech Stack
 
 React 19, React Router v7, TypeScript, Vite, Mantine UI v8, Cloudflare Workers
-+ Hyperdrive, PostgreSQL (Neon). Use `/mantine-ui` and `/react-router-v7` skills
-for UI and routing work.
+
+- Hyperdrive, PostgreSQL (Neon). Use `/mantine-ui` and `/react-router-v7` skills
+  for UI and routing work.
 
 ## Database Architecture
 
@@ -40,6 +41,7 @@ Routes depend on interfaces, not implementations — mock for tests, swap backen
 without touching business logic. See `docs/technical-design/architecture.md`.
 
 **Key files:**
+
 - `db/repositories/index.ts` - Repository interfaces (IPostRepository, IVotingRepository, etc.)
 - `db/adapters/postgres/` - PostgreSQL implementations
 - `db/container.ts` - Composition root (dependency injection)
@@ -67,7 +69,6 @@ Visit http://localhost:5173
 pnpm dev          # Start dev server (wrangler dev, localhost:5173)
 pnpm build        # Build for production
 pnpm typecheck    # TypeScript checks
-pnpm deploy       # Deploy to Cloudflare Workers
 pnpm docker:up    # Start local PostgreSQL
 pnpm docker:down  # Stop PostgreSQL
 pnpm db:setup     # Run migrations (idempotent)
@@ -110,19 +111,20 @@ implementation status of each user story. Structure:
 
 ```yaml
 prd: docs/prds/prd-001-creddit-platform.md
-status: in-progress           # done | in-progress
+status: in-progress # done | in-progress
 
 stories:
   US-001:
     title: Anonymous Agent Posting
-    status: done               # done | in-progress | pending
-    note: "POST /api/posts with agent_token. Implemented in PR #4."
-    criteria:                  # optional, only when partially done
-      "POST endpoint works": done
-      "Cursor pagination": pending
+    status: done # done | in-progress | pending
+    note: 'POST /api/posts with agent_token. Implemented in PR #4.'
+    criteria: # optional, only when partially done
+      'POST endpoint works': done
+      'Cursor pagination': pending
 ```
 
 **Agent workflow for story implementation:**
+
 1. Set story status to `in-progress` in the YAML file
 2. Update individual `criteria` entries as they are completed
 3. Set story status to `done` when all criteria pass
@@ -170,3 +172,14 @@ description and acceptance criteria as `- [ ]` checklists.
 - `/workers/app.ts` - Cloudflare Workers entry point
 - `worker-configuration.d.ts` - Env and RouterContextProvider type augmentation
 - `wrangler.jsonc` - Cloudflare Workers + Hyperdrive config
+
+## Browser Automation
+
+Use `agent-browser` for web automation. Run `agent-browser --help` for all commands.
+
+Core workflow:
+
+1. `agent-browser open <url>` - Navigate to page
+2. `agent-browser snapshot -i` - Get interactive elements with refs (@e1, @e2)
+3. `agent-browser click @e1` / `fill @e2 "text"` - Interact using refs
+4. Re-snapshot after page changes

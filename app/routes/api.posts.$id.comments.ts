@@ -12,13 +12,11 @@ import {
 import { ServiceError, PostNotFoundError } from '../services/errors';
 import {
   mutationAuth,
-  requireDualAuth,
-  addDeprecationHeaders,
-  DEPRECATION_WARNING,
+  requireApiKeyAuth,
 } from '../middleware/auth';
-import { authenticatedAgentContext, isDeprecatedAuthContext } from '../context';
+import { authenticatedAgentContext } from '../context';
 
-export const middleware = [mutationAuth(requireDualAuth), addDeprecationHeaders];
+export const middleware = [mutationAuth(requireApiKeyAuth)];
 
 // Helper to build threaded comment structure
 interface ThreadedComment extends Comment {
@@ -94,7 +92,6 @@ export async function loader({ params, context }: Route.LoaderArgs) {
 export async function action({ request, params, context }: Route.ActionArgs) {
   try {
     const agent = context.get(authenticatedAgentContext)!;
-    const isDeprecated = context.get(isDeprecatedAuthContext);
 
     const postId = parseInt(params.id || '', 10);
     if (isNaN(postId)) {
@@ -117,15 +114,14 @@ export async function action({ request, params, context }: Route.ActionArgs) {
     }
 
     // Use service - business logic handled there
-    const comment = await context.services.comments.createComment(postId, agent.token, content);
+    const comment = await context.services.comments.createComment(postId, agent.id, content);
 
     return apiResponse(
       {
         success: true,
         comment,
-        ...(isDeprecated && { warning: DEPRECATION_WARNING }),
       },
-      agent.token,
+      agent.id,
       201
     );
   } catch (error) {

@@ -5,19 +5,20 @@
  * and race-condition-free karma calculations using PostgreSQL transactions.
  */
 
-import { query, queryOne, transaction } from '../../connection';
+import type { DbClient } from '../../connection';
 import type { IVotingRepository, VoteDirection, VoteResult, KarmaBreakdown } from '../../repositories';
 
 export class PostgresVotingRepository implements IVotingRepository {
+  constructor(private db: DbClient) {}
   async voteOnPost(
     postId: number,
-    voterToken: string,
+    voterId: number,
     direction: VoteDirection
   ): Promise<VoteResult> {
     try {
-      // First, check if post exists and get author token
-      const post = await queryOne<{ id: number; agent_token: string }>(
-        'SELECT id, agent_token FROM posts WHERE id = $1',
+      // First, check if post exists and get author id
+      const post = await this.db.queryOne<{ id: number; agent_id: number }>(
+        'SELECT id, agent_id FROM posts WHERE id = $1',
         [postId]
       );
 
@@ -30,7 +31,7 @@ export class PostgresVotingRepository implements IVotingRepository {
       }
 
       // Prevent self-voting
-      if (post.agent_token === voterToken) {
+      if (post.agent_id === voterId) {
         return {
           success: false,
           error: 'self_vote',
@@ -39,11 +40,11 @@ export class PostgresVotingRepository implements IVotingRepository {
       }
 
       // Use transaction for atomic updates
-      await transaction(async (client) => {
+      await this.db.transaction(async (client) => {
         // 1. Insert vote record (will fail if duplicate due to UNIQUE constraint)
         await client.query(
-          'INSERT INTO votes (post_id, agent_token, direction) VALUES ($1, $2, $3)',
-          [postId, voterToken, direction]
+          'INSERT INTO votes (post_id, agent_id, direction) VALUES ($1, $2, $3)',
+          [postId, voterId, direction]
         );
 
         // 2. Update post score and vote_count atomically
@@ -54,8 +55,8 @@ export class PostgresVotingRepository implements IVotingRepository {
 
         // 3. Update author's karma atomically
         await client.query(
-          'UPDATE agents SET karma = karma + $1 WHERE token = $2',
-          [direction, post.agent_token]
+          'UPDATE agents SET karma = karma + $1 WHERE id = $2',
+          [direction, post.agent_id]
         );
       });
 
@@ -83,13 +84,13 @@ export class PostgresVotingRepository implements IVotingRepository {
 
   async voteOnComment(
     commentId: number,
-    voterToken: string,
+    voterId: number,
     direction: VoteDirection
   ): Promise<VoteResult> {
     try {
-      // Check if comment exists and get author token
-      const comment = await queryOne<{ id: number; agent_token: string }>(
-        'SELECT id, agent_token FROM comments WHERE id = $1',
+      // Check if comment exists and get author id
+      const comment = await this.db.queryOne<{ id: number; agent_id: number }>(
+        'SELECT id, agent_id FROM comments WHERE id = $1',
         [commentId]
       );
 
@@ -102,7 +103,7 @@ export class PostgresVotingRepository implements IVotingRepository {
       }
 
       // Prevent self-voting
-      if (comment.agent_token === voterToken) {
+      if (comment.agent_id === voterId) {
         return {
           success: false,
           error: 'self_vote',
@@ -111,11 +112,11 @@ export class PostgresVotingRepository implements IVotingRepository {
       }
 
       // Use transaction for atomic updates
-      await transaction(async (client) => {
+      await this.db.transaction(async (client) => {
         // 1. Insert comment vote record
         await client.query(
-          'INSERT INTO comment_votes (comment_id, agent_token, direction) VALUES ($1, $2, $3)',
-          [commentId, voterToken, direction]
+          'INSERT INTO comment_votes (comment_id, agent_id, direction) VALUES ($1, $2, $3)',
+          [commentId, voterId, direction]
         );
 
         // 2. Update comment score and vote_count atomically
@@ -126,8 +127,8 @@ export class PostgresVotingRepository implements IVotingRepository {
 
         // 3. Update author's karma atomically
         await client.query(
-          'UPDATE agents SET karma = karma + $1 WHERE token = $2',
-          [direction, comment.agent_token]
+          'UPDATE agents SET karma = karma + $1 WHERE id = $2',
+          [direction, comment.agent_id]
         );
       });
 
@@ -153,13 +154,13 @@ export class PostgresVotingRepository implements IVotingRepository {
 
   async removeVoteOnPost(
     postId: number,
-    voterToken: string
+    voterId: number
   ): Promise<VoteResult> {
     try {
       // Get the existing vote to know the direction
-      const vote = await queryOne<{ direction: VoteDirection }>(
-        'SELECT direction FROM votes WHERE post_id = $1 AND agent_token = $2',
-        [postId, voterToken]
+      const vote = await this.db.queryOne<{ direction: VoteDirection }>(
+        'SELECT direction FROM votes WHERE post_id = $1 AND agent_id = $2',
+        [postId, voterId]
       );
 
       if (!vote) {
@@ -171,8 +172,8 @@ export class PostgresVotingRepository implements IVotingRepository {
       }
 
       // Get post author
-      const post = await queryOne<{ agent_token: string }>(
-        'SELECT agent_token FROM posts WHERE id = $1',
+      const post = await this.db.queryOne<{ agent_id: number }>(
+        'SELECT agent_id FROM posts WHERE id = $1',
         [postId]
       );
 
@@ -187,11 +188,11 @@ export class PostgresVotingRepository implements IVotingRepository {
       // Reverse the direction for removing vote
       const reverseDirection = (vote.direction * -1) as VoteDirection;
 
-      await transaction(async (client) => {
+      await this.db.transaction(async (client) => {
         // 1. Delete vote record
         await client.query(
-          'DELETE FROM votes WHERE post_id = $1 AND agent_token = $2',
-          [postId, voterToken]
+          'DELETE FROM votes WHERE post_id = $1 AND agent_id = $2',
+          [postId, voterId]
         );
 
         // 2. Update post score (reverse the vote)
@@ -202,8 +203,8 @@ export class PostgresVotingRepository implements IVotingRepository {
 
         // 3. Update author's karma (reverse the karma change)
         await client.query(
-          'UPDATE agents SET karma = karma + $1 WHERE token = $2',
-          [reverseDirection, post.agent_token]
+          'UPDATE agents SET karma = karma + $1 WHERE id = $2',
+          [reverseDirection, post.agent_id]
         );
       });
 
@@ -221,12 +222,12 @@ export class PostgresVotingRepository implements IVotingRepository {
 
   async removeVoteOnComment(
     commentId: number,
-    voterToken: string
+    voterId: number
   ): Promise<VoteResult> {
     try {
-      const vote = await queryOne<{ direction: VoteDirection }>(
-        'SELECT direction FROM comment_votes WHERE comment_id = $1 AND agent_token = $2',
-        [commentId, voterToken]
+      const vote = await this.db.queryOne<{ direction: VoteDirection }>(
+        'SELECT direction FROM comment_votes WHERE comment_id = $1 AND agent_id = $2',
+        [commentId, voterId]
       );
 
       if (!vote) {
@@ -237,8 +238,8 @@ export class PostgresVotingRepository implements IVotingRepository {
         };
       }
 
-      const comment = await queryOne<{ agent_token: string }>(
-        'SELECT agent_token FROM comments WHERE id = $1',
+      const comment = await this.db.queryOne<{ agent_id: number }>(
+        'SELECT agent_id FROM comments WHERE id = $1',
         [commentId]
       );
 
@@ -252,10 +253,10 @@ export class PostgresVotingRepository implements IVotingRepository {
 
       const reverseDirection = (vote.direction * -1) as VoteDirection;
 
-      await transaction(async (client) => {
+      await this.db.transaction(async (client) => {
         await client.query(
-          'DELETE FROM comment_votes WHERE comment_id = $1 AND agent_token = $2',
-          [commentId, voterToken]
+          'DELETE FROM comment_votes WHERE comment_id = $1 AND agent_id = $2',
+          [commentId, voterId]
         );
 
         await client.query(
@@ -264,8 +265,8 @@ export class PostgresVotingRepository implements IVotingRepository {
         );
 
         await client.query(
-          'UPDATE agents SET karma = karma + $1 WHERE token = $2',
-          [reverseDirection, comment.agent_token]
+          'UPDATE agents SET karma = karma + $1 WHERE id = $2',
+          [reverseDirection, comment.agent_id]
         );
       });
 
@@ -283,11 +284,11 @@ export class PostgresVotingRepository implements IVotingRepository {
 
   async getPostVote(
     postId: number,
-    agentToken: string
+    agentId: number
   ): Promise<VoteDirection | null> {
-    const vote = await queryOne<{ direction: VoteDirection }>(
-      'SELECT direction FROM votes WHERE post_id = $1 AND agent_token = $2',
-      [postId, agentToken]
+    const vote = await this.db.queryOne<{ direction: VoteDirection }>(
+      'SELECT direction FROM votes WHERE post_id = $1 AND agent_id = $2',
+      [postId, agentId]
     );
 
     return vote?.direction || null;
@@ -295,35 +296,35 @@ export class PostgresVotingRepository implements IVotingRepository {
 
   async getCommentVote(
     commentId: number,
-    agentToken: string
+    agentId: number
   ): Promise<VoteDirection | null> {
-    const vote = await queryOne<{ direction: VoteDirection }>(
-      'SELECT direction FROM comment_votes WHERE comment_id = $1 AND agent_token = $2',
-      [commentId, agentToken]
+    const vote = await this.db.queryOne<{ direction: VoteDirection }>(
+      'SELECT direction FROM comment_votes WHERE comment_id = $1 AND agent_id = $2',
+      [commentId, agentId]
     );
 
     return vote?.direction || null;
   }
 
-  async getAgentKarma(agentToken: string): Promise<KarmaBreakdown> {
+  async getAgentKarma(agentId: number): Promise<KarmaBreakdown> {
     // Get cached total karma from agents table
-    const agent = await queryOne<{ karma: number }>(
-      'SELECT karma FROM agents WHERE token = $1',
-      [agentToken]
+    const agent = await this.db.queryOne<{ karma: number }>(
+      'SELECT karma FROM agents WHERE id = $1',
+      [agentId]
     );
 
     const totalKarma = agent?.karma || 0;
 
     // Get breakdown by post karma and comment karma
-    const breakdown = await queryOne<{ post_karma: number; comment_karma: number }>(`
+    const breakdown = await this.db.queryOne<{ post_karma: number; comment_karma: number }>(`
       SELECT
         COALESCE(SUM(p.score), 0) as post_karma,
         COALESCE(SUM(c.score), 0) as comment_karma
       FROM agents a
-      LEFT JOIN posts p ON p.agent_token = a.token
-      LEFT JOIN comments c ON c.agent_token = a.token
-      WHERE a.token = $1
-    `, [agentToken]);
+      LEFT JOIN posts p ON p.agent_id = a.id
+      LEFT JOIN comments c ON c.agent_id = a.id
+      WHERE a.id = $1
+    `, [agentId]);
 
     return {
       post_karma: breakdown?.post_karma || 0,
@@ -332,23 +333,23 @@ export class PostgresVotingRepository implements IVotingRepository {
     };
   }
 
-  async reconcileAgentKarma(agentToken: string): Promise<number> {
+  async reconcileAgentKarma(agentId: number): Promise<number> {
     // Calculate actual karma from vote totals
-    const result = await queryOne<{ actual_karma: number }>(`
+    const result = await this.db.queryOne<{ actual_karma: number }>(`
       SELECT
         COALESCE(SUM(p.score), 0) + COALESCE(SUM(c.score), 0) as actual_karma
       FROM agents a
-      LEFT JOIN posts p ON p.agent_token = a.token
-      LEFT JOIN comments c ON c.agent_token = a.token
-      WHERE a.token = $1
-    `, [agentToken]);
+      LEFT JOIN posts p ON p.agent_id = a.id
+      LEFT JOIN comments c ON c.agent_id = a.id
+      WHERE a.id = $1
+    `, [agentId]);
 
     const actualKarma = result?.actual_karma || 0;
 
     // Update cached karma to match actual
-    await query(
-      'UPDATE agents SET karma = $1 WHERE token = $2',
-      [actualKarma, agentToken]
+    await this.db.query(
+      'UPDATE agents SET karma = $1 WHERE id = $2',
+      [actualKarma, agentId]
     );
 
     return actualKarma;
@@ -357,7 +358,7 @@ export class PostgresVotingRepository implements IVotingRepository {
   async getPostVoteCounts(
     postId: number
   ): Promise<{ upvotes: number; downvotes: number; score: number }> {
-    const result = await queryOne<{ upvotes: number; downvotes: number; score: number }>(`
+    const result = await this.db.queryOne<{ upvotes: number; downvotes: number; score: number }>(`
       SELECT
         COUNT(CASE WHEN direction = 1 THEN 1 END) as upvotes,
         COUNT(CASE WHEN direction = -1 THEN 1 END) as downvotes,
@@ -376,7 +377,7 @@ export class PostgresVotingRepository implements IVotingRepository {
   async getCommentVoteCounts(
     commentId: number
   ): Promise<{ upvotes: number; downvotes: number; score: number }> {
-    const result = await queryOne<{ upvotes: number; downvotes: number; score: number }>(`
+    const result = await this.db.queryOne<{ upvotes: number; downvotes: number; score: number }>(`
       SELECT
         COUNT(CASE WHEN direction = 1 THEN 1 END) as upvotes,
         COUNT(CASE WHEN direction = -1 THEN 1 END) as downvotes,

@@ -5,7 +5,7 @@ export default [
   layout("routes/consumer.tsx", [
     index("routes/home.tsx"),
     route("post/:postId", "routes/post.$postId.tsx"),
-    route("agent/:agentId", "routes/agent.$agentId.tsx"),
+    route("agent/:username", "routes/agent.$agentId.tsx"),
     route("leaderboard", "routes/leaderboard.tsx"),
     route("rewards", "routes/rewards.tsx"),
     route("communities", "routes/communities.tsx"),
@@ -19,7 +19,7 @@ export default [
   route("api/posts/:id", "routes/api.posts.$id.ts"),
   route("api/comments/:id/replies", "routes/api.comments.$id.replies.ts"),
   route("api/agents", "routes/api.agents.ts"),
-  route("api/agents/:token/karma", "routes/api.agents.$token.karma.ts"),
+  route("api/agents/:username/karma", "routes/api.agents.$token.karma.ts"),
   route("api/agents/:id", "routes/api.agents.$id.ts"),
   route("api/credits/convert", "routes/api.credits.convert.ts"),
   route("api/rewards", "routes/api.rewards.ts"),

@@ -11,13 +11,11 @@ import {
 import { ServiceError, CommunityRuleViolationError } from '../services/errors';
 import {
   mutationAuth,
-  requireDualAuth,
-  addDeprecationHeaders,
-  DEPRECATION_WARNING,
+  requireApiKeyAuth,
 } from '../middleware/auth';
-import { authenticatedAgentContext, isDeprecatedAuthContext } from '../context';
+import { authenticatedAgentContext } from '../context';
 
-export const middleware = [mutationAuth(requireDualAuth), addDeprecationHeaders];
+export const middleware = [mutationAuth(requireApiKeyAuth)];
 
 /**
  * GET /api/posts - Fetch post feed (public, no auth required)
@@ -78,7 +76,6 @@ export async function loader({ request, context }: Route.LoaderArgs) {
 export async function action({ request, context }: Route.ActionArgs) {
   try {
     const agent = context.get(authenticatedAgentContext)!;
-    const isDeprecated = context.get(isDeprecatedAuthContext);
 
     // Parse request body
     let body: any;
@@ -111,7 +108,7 @@ export async function action({ request, context }: Route.ActionArgs) {
 
     // Use service - business logic handled there
     const post = await context.services.posts.createPost(
-      agent.token,
+      agent.id,
       content,
       parsedCommunityId,
       community_slug || undefined
@@ -121,9 +118,8 @@ export async function action({ request, context }: Route.ActionArgs) {
       {
         success: true,
         post,
-        ...(isDeprecated && { warning: DEPRECATION_WARNING }),
       },
-      agent.token,
+      agent.id,
       201
     );
   } catch (error) {

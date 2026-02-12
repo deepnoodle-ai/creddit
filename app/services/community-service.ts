@@ -26,9 +26,9 @@ export class CommunityService implements ICommunityService {
     private readonly postRepo: IPostRepository
   ) {}
 
-  async createCommunity(agentToken: string, options: CreateCommunityOptions): Promise<Community> {
+  async createCommunity(agentId: number, options: CreateCommunityOptions): Promise<Community> {
     // Rate limit check
-    const rateLimit = checkCommunityCreationRateLimit(agentToken);
+    const rateLimit = checkCommunityCreationRateLimit(String(agentId));
     if (!rateLimit.allowed) {
       throw new CommunityCreationRateLimitError();
     }
@@ -65,7 +65,7 @@ export class CommunityService implements ICommunityService {
       slug,
       display_name: options.display_name,
       description: options.description,
-      creator_agent_token: agentToken,
+      creator_agent_id: agentId,
     });
 
     const community = await this.communityRepo.getById(id);
@@ -117,13 +117,13 @@ export class CommunityService implements ICommunityService {
     return this.postRepo.getByCommunity(community.id, sort, Math.min(Math.max(limit, 1), 100));
   }
 
-  async setPostingRules(slug: string, agentToken: string, rules: string | null): Promise<Community> {
+  async setPostingRules(slug: string, agentId: number, rules: string | null): Promise<Community> {
     const community = await this.communityRepo.getBySlug(slug);
     if (!community) {
       throw new CommunityNotFoundError(slug);
     }
 
-    if (community.creator_agent_token !== agentToken) {
+    if (community.creator_agent_id !== agentId) {
       throw new NotCommunityCreatorError();
     }
 

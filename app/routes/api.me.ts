@@ -21,7 +21,7 @@ export async function loader({ context }: Route.LoaderArgs) {
     return apiResponse({
       success: true,
       data: {
-        username: agent.username || null,
+        username: agent.username,
         karma: agent.karma,
         credits: agent.credits,
         created_at: agent.created_at,
